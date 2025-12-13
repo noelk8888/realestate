@@ -1,0 +1,355 @@
+
+import React, { useState, useEffect } from 'react';
+import { Search, Sparkles, Info } from 'lucide-react';
+import { fetchListings } from './services/dataService';
+import { searchListings } from './services/searchEngine';
+import type { Listing } from './types';
+import { ListingCard } from './components/ListingCard';
+
+function App() {
+  const [query, setQuery] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [results, setResults] = useState<Listing[]>([]);
+  const [filterType, setFilterType] = useState<string | null>('Sale'); // Default 'Sale'
+  const [sortConfig, setSortConfig] = useState<{ key: 'price' | 'pricePerSqm' | 'relevance', direction: 'asc' | 'desc' } | null>(null);
+  // Relevance Score: 0-100.
+  // We align this with the 5 stages requested: 100, 75, 50, 25, 0.
+  // Initialize from URL if present.
+  const getInitialScore = () => {
+    const params = new URLSearchParams(window.location.search);
+    const score = params.get('relevance');
+    return score ? parseInt(score) : 50; // Default 50
+  };
+
+  const [relevanceScore, setRelevanceScore] = useState<number>(getInitialScore());
+  const [selectedListings, setSelectedListings] = useState<string[]>([]);
+
+  // Initial Data Load
+  useEffect(() => {
+    fetchListings().then(data => {
+      setAllListings(data);
+      setLoading(false);
+    });
+  }, []);
+
+  // Post-load search if URL had query
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (!loading && q && !hasSearched) {
+      setHasSearched(true);
+      setQuery(q);
+      let filtered = searchListings(allListings, q, relevanceScore);
+      setResults(filtered);
+    }
+  }, [loading, allListings, hasSearched, relevanceScore]);
+
+  const updateUrlParams = (q: string, score: number) => {
+    const params = new URLSearchParams(window.location.search);
+    if (q) params.set('q', q);
+    else params.delete('q');
+
+    params.set('relevance', score.toString());
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+
+    setHasSearched(true);
+    updateUrlParams(query, relevanceScore);
+
+    let filtered = searchListings(allListings, query, relevanceScore);
+    setResults(filtered);
+  };
+
+  // Effect: Re-search when relevanceScore changes
+  useEffect(() => {
+    if (hasSearched && query.trim()) {
+      updateUrlParams(query, relevanceScore);
+      let filtered = searchListings(allListings, query, relevanceScore);
+      setResults(filtered);
+    }
+  }, [relevanceScore]); // Trigger re-search on score change
+
+  // Re-run filter and sort when filterType, sortType, or query results change
+  const displayedResults = results.filter(item => {
+    if (!filterType) return true;
+    const type = filterType.toLowerCase();
+    const itemType = item.saleType?.toLowerCase() || '';
+
+    // Logic:
+    // Sale -> Sale OR Sale/Lease
+    // Lease -> Lease OR Sale/Lease
+    // Sale/Lease -> ONLY Sale/Lease
+
+    if (type === 'sale/lease') {
+      return itemType === 'sale/lease';
+    }
+    if (type === 'sale') {
+      return itemType === 'sale' || itemType === 'sale/lease';
+    }
+    if (type === 'lease') {
+      return itemType === 'lease' || itemType === 'sale/lease';
+    }
+    return true;
+  }).sort((a, b) => {
+    if (!sortConfig) return 0;
+
+    let comparison = 0;
+    if (sortConfig.key === 'price') {
+      comparison = a.price - b.price;
+    } else if (sortConfig.key === 'pricePerSqm') {
+      comparison = a.pricePerSqm - b.pricePerSqm;
+    }
+
+    return sortConfig.direction === 'asc' ? comparison : -comparison;
+  });
+
+  // Relevance sort = null sortConfig (uses original array order from searchEngine)
+  const handleSort = (key: 'price' | 'pricePerSqm' | 'relevance') => {
+    if (key === 'relevance') {
+      setSortConfig(null);
+      return;
+    }
+
+    setSortConfig(current => {
+      if (current?.key === key) {
+        // Toggle direction if same key
+        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      // Default to High-Low (desc) for new key as implies "Best/Expensive" first usually
+      return { key, direction: 'desc' };
+    });
+  };
+
+  const handleToggleSelection = (listingId: string) => {
+    setSelectedListings(prev => {
+      if (prev.includes(listingId)) {
+        // Deselect
+        return prev.filter(id => id !== listingId);
+      } else {
+        // Select (only if less than 5)
+        if (prev.length < 5) {
+          return [...prev, listingId];
+        }
+        return prev;
+      }
+    });
+  };
+
+  const handleSendForm = () => {
+    // TODO: Implement form submission
+    alert(`Selected ${selectedListings.length} listings: ${selectedListings.join(', ')}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100">
+
+      {/* Hero / Search Section */}
+      <div className={`flex flex-col items-center justify-center transition-all duration-500 ease-out px-4 ${hasSearched ? 'py-12 min-h-[30vh]' : 'min-h-[100vh]'
+        }`}>
+        <div className={`w-full max-w-2xl text-center space-y-6 transition-all duration-500 ${hasSearched ? 'translate-y-0' : '-translate-y-8'
+          }`}>
+          <p className={`font-bold text-gray-900 tracking-tight transition-all duration-500 ${hasSearched ? 'text-2xl mb-4' : 'text-4xl sm:text-5xl mb-8'}`}>
+            {allListings.length > 0 ? `${allListings.length} Available Listings` : 'Loading properties...'}
+          </p>
+
+          {/* Filter Buttons */}
+          <div className="flex justify-center gap-3 mb-8">
+            {['Sale', 'Lease', 'Sale/Lease'].map((type) => {
+              let label = type.toUpperCase();
+              if (type === 'Sale') label = 'FOR SALE';
+              if (type === 'Lease') label = 'FOR LEASE';
+
+              return (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(current => current === type ? null : type)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border
+                        ${filterType === type
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600'
+                    }
+                    `}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          <form onSubmit={handleSearch} className="relative w-full group">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <Sparkles className={`w-5 h-5 transition-colors ${hasSearched ? 'text-blue-500' : 'text-gray-400 group-hover:text-blue-500'}`} />
+            </div>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Describe what you're looking for ..."
+              className={`w-full bg-white border-2 transition-all duration-300 rounded-2xl outline-none placeholder:text-gray-400
+                        ${hasSearched
+                  ? 'py-3 pl-12 pr-4 text-base border-gray-200 focus:border-blue-500 shadow-sm'
+                  : 'py-5 pl-12 pr-6 text-lg border-transparent shadow-xl hover:shadow-2xl focus:ring-4 focus:ring-blue-100'
+                }
+                    `}
+            />
+            <button
+              type="submit"
+              className={`absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all
+                        ${hasSearched ? 'p-1.5' : 'px-4 py-2 font-medium'}
+                    `}
+            >
+              {hasSearched ? <Search className="w-4 h-4" /> : 'Search'}
+            </button>
+          </form>
+
+          {/* Results Bar: Found Count (Left) + Sort Buttons (Right) - Visible after search */}
+          {hasSearched && (
+            <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-2xl mt-4 gap-4 animate-fade-in-up">
+              {/* Found Count + Reset Button */}
+              <div className="flex items-center gap-3 order-2 sm:order-1">
+                <span className="text-gray-600 font-medium whitespace-nowrap">
+                  Found {displayedResults.length} properties
+                </span>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-xs text-red-500 hover:text-red-700 font-medium underline"
+                >
+                  RESET
+                </button>
+              </div>
+
+              {/* Controls: Slider + Sort Buttons (One Row) */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 order-1 sm:order-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-500">Relevance:</span>
+                  <div className="relative group">
+                    <Info className="w-3 h-3 text-gray-400 cursor-help" />
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-100 pointer-events-none">
+                      100% - exact match
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="4"
+                    step="1"
+                    // Map specific score back to index for slider: 100->0, 75->1, 50->2, 25->3, 0->4
+                    // Inverse: Index = (100 - score) / 25
+                    value={(100 - relevanceScore) / 25}
+                    onChange={(e) => {
+                      const index = parseInt(e.target.value);
+                      // Map index back to score: 0->100, 1->75, ...
+                      const newScore = 100 - (index * 25);
+                      setRelevanceScore(newScore);
+                    }}
+                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-gray-700 w-8 text-right">
+                    {relevanceScore}%
+                  </span>
+                </div>
+
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSort('price')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border flex items-center gap-1 relative group
+                            ${sortConfig?.key === 'price'
+                        ? 'bg-gray-800 text-white border-gray-800'
+                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      }
+                        `}
+                  >
+                    Price {sortConfig?.key === 'price' ? (sortConfig.direction === 'desc' ? '↓' : '↑') : ''}
+                    <Info className="w-3 h-3 opacity-50" />
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-100 pointer-events-none">
+                      Sort Property Price
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleSort('pricePerSqm')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border flex items-center gap-1 relative group
+                            ${sortConfig?.key === 'pricePerSqm'
+                        ? 'bg-gray-800 text-white border-gray-800'
+                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      }
+                        `}
+                  >
+                    Price/Sqm {sortConfig?.key === 'pricePerSqm' ? (sortConfig.direction === 'desc' ? '↓' : '↑') : ''}
+                    <Info className="w-3 h-3 opacity-50" />
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-100 pointer-events-none">
+                      Sort Price/Sqm
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Instructional Text with Selection Counter */}
+            <div className="w-full max-w-2xl mt-4 text-center">
+              <p className="text-sm text-gray-600">
+                If you're interested in any of our listings, please select up to five and send us the completed form.
+                {selectedListings.length > 0 && (
+                  <span className="ml-2 font-semibold text-blue-600">({selectedListings.length}/5 selected)</span>
+                )}
+              </p>
+              {selectedListings.length > 0 && (
+                <button
+                  onClick={handleSendForm}
+                  className="mt-3 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  SEND FORM
+                </button>
+              )}
+            </div>
+          )        </div>
+
+
+
+        {!hasSearched && (
+          <p className="text-gray-500 text-sm animate-pulse">
+            {loading ? 'Initializing AI Engine...' : 'Ready. Try "Lot in Cavite" or "BGC Condo"'}
+          </p>
+        )}
+      </div>
+
+      {/* Results Section */}
+      {hasSearched && (
+        <div className="max-w-7xl mx-auto px-4 pb-20 animate-fade-in-up">
+
+
+          {displayedResults.length === 0 ? (
+            <div className="text-center py-20 text-gray-500 bg-white rounded-2xl border border-gray-100">
+              <p className="text-lg">No matches found for "{query}" {filterType ? ` with filter "${filterType}"` : ''}</p>
+              <p className="text-sm mt-2">Try adjusting your price, location, or filters.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayedResults.map((listing, idx) => (
+                <ListingCard
+                  key={`${listing.id}-${idx}`}
+                  listing={listing}
+                  isSelected={selectedListings.includes(listing.id)}
+                  onToggleSelection={handleToggleSelection}
+                  isDisabled={selectedListings.length >= 5}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )
+      }
+    </div >
+  );
+}
+
+export default App;
