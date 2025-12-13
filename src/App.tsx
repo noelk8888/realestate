@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Info } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { fetchListings } from './services/dataService';
 import { searchListings } from './services/searchEngine';
 import type { Listing } from './types';
@@ -101,13 +101,27 @@ function App() {
 
   // Re-run filter and sort when filters change
   const displayedResults = results.filter(item => {
+    // 0. ID Search Override
+    // If the query looks like an ID (G+Number), we IGNORE all filters to ensure the specific item is shown.
+    const isIdSearch = query.trim().toUpperCase().match(/^G\d+/);
+
+    if (isIdSearch) {
+      // Check if this specific item is the ID match (Optional: searchListings handles scoring, but we must not filter it out)
+      // Actually, searchEngine returns matches. If searchEngine returned it, and it's an ID search, allow it.
+      return true;
+    }
+
     // 1. Type Match Logic (If null, allow all types)
     let typeMatch = true;
     if (selectedType) {
       const itemType = item.saleType?.toLowerCase() || '';
-      if (selectedType === 'Sale') typeMatch = (itemType === 'sale' || itemType === 'sale/lease');
-      else if (selectedType === 'Lease') typeMatch = (itemType === 'lease' || itemType === 'sale/lease');
-      else if (selectedType === 'Sale/Lease') typeMatch = (itemType === 'sale/lease');
+      if (selectedType === 'Sale') typeMatch = (itemType === 'sale' || itemType === 'sale/lease' || itemType === 'sale or lease');
+      else if (selectedType === 'Lease') typeMatch = (itemType === 'lease' || itemType === 'sale/lease' || itemType === 'sale or lease');
+      else if (selectedType === 'Sale/Lease') {
+        // "includes SALE AND LEASE, or SALE/LEASE, SALE OR LEASE"
+        typeMatch = itemType.includes('sale') && itemType.includes('lease');
+        if (!typeMatch) typeMatch = itemType === 'sale or lease' || itemType === 'sale/lease';
+      }
     }
 
     // 2. Category Match Logic (Single Select)
@@ -196,15 +210,15 @@ function App() {
 
 
 
-          {/* Filter Buttons - iOS Style Segmented Controls */}
-          <div className="flex flex-col gap-4 mb-8 w-full max-w-5xl mx-auto items-center">
+          {/* Filter Buttons - Single Line Compact Layout */}
+          <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-1 mb-8 w-full max-w-6xl mx-auto px-1">
 
-            {/* Row 1: Property Type */}
-            <div className="inline-flex bg-gray-100 p-1.5 rounded-xl shadow-inner relative z-0">
+            {/* Group 1: Property Type */}
+            <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
               {['Sale', 'Lease', 'Sale/Lease'].map((filter) => {
                 let label = filter.toUpperCase();
-                if (filter === 'Sale') label = 'FOR SALE';
-                if (filter === 'Lease') label = 'FOR LEASE';
+                if (filter === 'Sale') label = 'SALE'; // Shortened
+                if (filter === 'Lease') label = 'LEASE'; // Shortened
                 if (filter === 'Sale/Lease') label = 'SALE OR LEASE';
 
                 const isActive = selectedType === filter;
@@ -213,7 +227,7 @@ function App() {
                   <button
                     key={filter}
                     onClick={() => setSelectedType(current => current === filter ? null : filter)}
-                    className={`relative px-4 sm:px-6 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[100px]
+                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all duration-200 min-w-[50px] whitespace-nowrap
                           ${isActive
                         ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
@@ -226,15 +240,18 @@ function App() {
               })}
             </div>
 
-            {/* Row 2: Category */}
-            <div className="inline-flex bg-gray-100 p-1.5 rounded-xl shadow-inner relative z-0">
+            {/* Spacer - minimal */}
+            <div className="w-0.5"></div>
+
+            {/* Group 2: Category */}
+            <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
               {['Residential', 'Commercial'].map((filter) => {
                 const isActive = selectedCategory === filter;
                 return (
                   <button
                     key={filter}
                     onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
-                    className={`relative px-4 sm:px-6 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[100px]
+                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
                           ${isActive
                         ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
@@ -248,7 +265,7 @@ function App() {
 
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={`relative px-4 sm:px-6 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 min-w-[100px]
+                className={`relative px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all duration-200 min-w-[50px] whitespace-nowrap
                     ${selectedCategory === null
                     ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
@@ -306,26 +323,30 @@ function App() {
             <>
               <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-6 animate-fade-in-up w-full">
                 {/* Relevance Slider */}
-                <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
-                  <span className="text-sm font-bold text-gray-500">Search Precision:</span>
-                  <div className="relative group flex items-center" title="100% -Exact Match">
-                    <Info className="w-4 h-4 text-gray-400 cursor-help mr-2" />
-                    <input
-                      type="range"
-                      min="0"
-                      max="4"
-                      step="1"
-                      value={(100 - relevanceScore) / 25}
-                      onChange={(e) => {
-                        const index = parseInt(e.target.value);
-                        const newScore = 100 - (index * 25);
-                        setRelevanceScore(newScore);
-                      }}
-                      className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
-                    <span className="text-sm font-extrabold text-gray-800 ml-3 min-w-[3ch]">
-                      {relevanceScore}%
-                    </span>
+                {/* Relevance Slider (Exact Match <-> Broad Match) */}
+                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-gray-100 shadow-sm">
+                  <div className="flex flex-col items-center leading-none select-none">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Exact</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Match</span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="0"
+                    max="4"
+                    step="1"
+                    value={(100 - relevanceScore) / 25}
+                    onChange={(e) => {
+                      const index = parseInt(e.target.value);
+                      const newScore = 100 - (index * 25);
+                      setRelevanceScore(newScore);
+                    }}
+                    className="w-24 sm:w-28 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
+                  />
+
+                  <div className="flex flex-col items-center leading-none select-none">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Broad</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Match</span>
                   </div>
                 </div>
 
@@ -342,7 +363,7 @@ function App() {
                     <button
                       key={btn.id}
                       onClick={() => handleSort(btn.id as any)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
                             ${sortConfig?.key === btn.id
                           ? 'bg-gray-900 text-white shadow-md'
                           : 'bg-transparent text-gray-500 hover:bg-gray-100'
