@@ -7,8 +7,10 @@ import { searchListings } from './services/searchEngine';
 import type { Listing } from './types';
 import { ListingCard } from './components/ListingCard';
 import { ContactFormModal } from './components/ContactFormModal';
+import { ScrollToTop } from './components/ScrollToTop';
 
 function App() {
+
   const [query, setQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -295,7 +297,7 @@ function App() {
 
 
   // Derived Min/Max for Lot Area
-  const availableLotArea = baseFilteredResults.map(i => i.lotArea).filter(p => p > 0);
+  const availableLotArea = baseFilteredResults.map(i => i.lotArea).filter(p => p >= 0);
   const rawMinLot = availableLotArea.length ? Math.min(...availableLotArea) : 0;
   // Fallback max if empty? 1000? 
   const rawMaxLot = availableLotArea.length ? Math.max(...availableLotArea) : 1000;
@@ -409,6 +411,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100">
+      <ScrollToTop />
 
       {/* Hero / Search Section */}
       <div className={`flex flex-col items-center justify-center transition-all duration-500 ease-out px-4 ${hasSearched ? 'py-12 min-h-[30vh]' : 'min-h-[100vh]'
@@ -441,7 +444,7 @@ function App() {
                   <button
                     key={filter}
                     onClick={() => setSelectedType(current => current === filter ? null : filter)}
-                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all duration-200 min-w-[50px] whitespace-nowrap
+                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[50px] whitespace-nowrap
                           ${isActive
                         ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
@@ -468,7 +471,7 @@ function App() {
                   <button
                     key={filter}
                     onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
-                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
+                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
                           ${isActive
                         ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
@@ -524,363 +527,338 @@ function App() {
           </form>
 
           {/* Results Bar: Sort Controls Only (Centered below search) */}
-          {(hasSearched || selectedType) && (
-            <>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-6 animate-fade-in-up w-full">
-                {/* Relevance Slider */}
-                {/* Relevance Slider (Exact Match <-> Broad Match) */}
-                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-gray-100 shadow-sm">
-                  <div className="flex flex-col items-center leading-none select-none">
-                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Exact</span>
-                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Match</span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="0"
-                    max="4"
-                    step="1"
-                    value={(100 - relevanceScore) / 25}
-                    onChange={(e) => {
-                      const index = parseInt(e.target.value);
-                      const newScore = 100 - (index * 25);
-                      setRelevanceScore(newScore);
-                    }}
-                    className="w-24 sm:w-28 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
-                  />
-
-                  <div className="flex flex-col items-center leading-none select-none">
-                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Broad</span>
-                    <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Match</span>
-                  </div>
-                </div>
-
-                <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
-
-                {/* Sort Buttons */}
-                <div className="flex gap-2 bg-white p-1 rounded-full border border-gray-100 shadow-sm relative group-sort-controls">
-                  <div className="relative">
-                    <button
-                      ref={priceButtonRef}
-                      disabled={displayedResults.length < 2}
-                      onClick={() => {
-                        // Clear any other active sort when Price is clicked
-                        if (sortConfig && sortConfig.key !== 'price') {
-                          setSortConfig(null);
-                        }
-                        setIsPriceFilterOpen(!isPriceFilterOpen);
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
-                            ${sortConfig?.key === 'price'
-                          ? 'bg-gray-900 text-white shadow-md'
-                          : 'bg-transparent text-gray-500 hover:bg-gray-100'
-                        }
-                        ${displayedResults.length < 2 ? 'opacity-50 cursor-not-allowed hidden' : ''}
-                        `}
-                    >
-                      Price
-                      {sortConfig?.key === 'price' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-                    </button>
-
-                    {isPriceFilterOpen && createPortal(
-                      <div
-                        ref={pricePopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
-                        style={{ top: `${popoverPosition.top}px`, left: `${popoverPosition.left}px` }}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Price Range (PHP)</span>
-                          <button
-                            onClick={() => handleSort('price')}
-                            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                            title="Toggle Sort Order"
-                          >
-                            {sortConfig?.key === 'price' && sortConfig.direction === 'asc'
-                              ? <ArrowUp className="w-4 h-4 text-gray-700" />
-                              : <ArrowDown className="w-4 h-4 text-gray-700" />
-                            }
-                          </button>
-                        </div>
-
-                        <DualRangeSlider
-                          min={minGlob}
-                          max={maxGlob}
-                          step={sliderStep}
-                          value={priceRange || [minGlob, maxGlob]}
-                          onChange={(val) => setPriceRange(val)}
-                          formatMinValue={(val) => {
-                            if (val >= 1000000) {
-                              const millions = val / 1000000;
-                              const rounded = Math.floor(millions / 10) * 10;
-                              return `${rounded.toLocaleString()}M`;
-                            } else if (val >= 1000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.floor(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K`;
-                            } else {
-                              return `${Math.floor(val / 10) * 10}`;
-                            }
-                          }}
-                          formatMaxValue={(val) => {
-                            if (val >= 1000000) {
-                              const millions = val / 1000000;
-                              const rounded = Math.ceil(millions / 10) * 10;
-                              return `${rounded.toLocaleString()}M`;
-                            } else if (val >= 1000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.ceil(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K`;
-                            } else {
-                              return `${Math.ceil(val / 10) * 10}`;
-                            }
-                          }}
-                        />
-                      </div>,
-                      document.body
-                    )}
-                  </div>
-
-                  {/* Price/Sqm Button with Popover */}
-                  <div className="relative">
-                    <button
-                      ref={pricePerSqmButtonRef}
-                      disabled={displayedResults.length < 2}
-                      onClick={() => {
-                        // Clear any other active sort when Price/Sqm is clicked
-                        if (sortConfig && sortConfig.key !== 'pricePerSqm') {
-                          setSortConfig(null);
-                        }
-                        setIsPricePerSqmFilterOpen(!isPricePerSqmFilterOpen);
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
-                        ${sortConfig?.key === 'pricePerSqm'
-                          ? 'bg-gray-900 text-white shadow-md'
-                          : 'bg-transparent text-gray-500 hover:bg-gray-100'
-                        }
-                    ${displayedResults.length < 2 ? 'opacity-50 cursor-not-allowed hidden' : ''}
-                    `}
-                    >
-                      Price/Sqm
-                      {sortConfig?.key === 'pricePerSqm' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-                    </button>
-
-                    {isPricePerSqmFilterOpen && createPortal(
-                      <div
-                        ref={pricePerSqmPopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
-                        style={{ top: `${popoverPositionPerSqm.top}px`, left: `${popoverPositionPerSqm.left}px` }}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Price/Sqm Range</span>
-                          <button
-                            onClick={() => handleSort('pricePerSqm')}
-                            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                            title="Toggle Sort Order"
-                          >
-                            {sortConfig?.key === 'pricePerSqm' && sortConfig.direction === 'asc'
-                              ? <ArrowUp className="w-4 h-4 text-gray-700" />
-                              : <ArrowDown className="w-4 h-4 text-gray-700" />
-                            }
-                          </button>
-                        </div>
-
-                        <DualRangeSlider
-                          min={minGlobPerSqm}
-                          max={maxGlobPerSqm}
-                          step={sliderStepPerSqm}
-                          value={pricePerSqmRange || [minGlobPerSqm, maxGlobPerSqm]}
-                          onChange={(val) => setPricePerSqmRange(val)}
-                          formatMinValue={(val) => {
-                            if (val >= 1000000) {
-                              const millions = val / 1000000;
-                              const rounded = Math.floor(millions / 10) * 10;
-                              return `${rounded.toLocaleString()}M`;
-                            } else if (val >= 1000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.floor(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K`;
-                            } else {
-                              return `${Math.floor(val / 10) * 10}`;
-                            }
-                          }}
-                          formatMaxValue={(val) => {
-                            if (val >= 1000000) {
-                              const millions = val / 1000000;
-                              const rounded = Math.ceil(millions / 10) * 10;
-                              return `${rounded.toLocaleString()}M`;
-                            } else if (val >= 1000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.ceil(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K`;
-                            } else {
-                              return `${Math.ceil(val / 10) * 10}`;
-                            }
-                          }}
-                        />
-                      </div>,
-                      document.body
-                    )}
-                  </div>
-
-                  {/* Lot Area Button with Popover */}
-                  <div className="relative">
-                    <button
-                      ref={lotAreaButtonRef}
-                      disabled={displayedResults.length < 2}
-                      onClick={() => {
-                        if (sortConfig && sortConfig.key !== 'lotArea') {
-                          setSortConfig(null);
-                        }
-                        setIsLotAreaFilterOpen(!isLotAreaFilterOpen);
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
-                        ${sortConfig?.key === 'lotArea'
-                          ? 'bg-gray-900 text-white shadow-md'
-                          : 'bg-transparent text-gray-500 hover:bg-gray-100'
-                        }
-                    ${displayedResults.length < 2 ? 'opacity-50 cursor-not-allowed hidden' : ''}
-                    `}
-                    >
-                      Lot Area
-                      {sortConfig?.key === 'lotArea' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-                    </button>
-
-                    {isLotAreaFilterOpen && createPortal(
-                      <div
-                        ref={lotAreaPopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
-                        style={{ top: `${popoverPositionLot.top}px`, left: `${popoverPositionLot.left}px` }}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Lot Area (SQM)</span>
-                          <button
-                            onClick={() => handleSort('lotArea')}
-                            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                            title="Toggle Sort Order"
-                          >
-                            {sortConfig?.key === 'lotArea' && sortConfig.direction === 'asc'
-                              ? <ArrowUp className="w-4 h-4 text-gray-700" />
-                              : <ArrowDown className="w-4 h-4 text-gray-700" />
-                            }
-                          </button>
-                        </div>
-
-                        <DualRangeSlider
-                          min={minGlobLot}
-                          max={maxGlobLot}
-                          step={sliderStepLot}
-                          value={lotAreaRange || [minGlobLot, maxGlobLot]}
-                          onChange={(val) => setLotAreaRange(val)}
-                          formatMinValue={(val) => {
-                            if (val >= 10000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.floor(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K SQM`;
-                            } else {
-                              return `${Math.floor(val / 10) * 10} SQM`;
-                            }
-                          }}
-                          formatMaxValue={(val) => {
-                            if (val >= 10000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.ceil(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K SQM`;
-                            } else {
-                              return `${Math.ceil(val / 10) * 10} SQM`;
-                            }
-                          }}
-                        />
-                      </div>,
-                      document.body
-                    )}
-                  </div>
-
-                  {/* Floor Area Button with Popover */}
-                  <div className="relative">
-                    <button
-                      ref={floorAreaButtonRef}
-                      disabled={displayedResults.length < 2}
-                      onClick={() => {
-                        if (sortConfig && sortConfig.key !== 'floorArea') {
-                          setSortConfig(null);
-                        }
-                        setIsFloorAreaFilterOpen(!isFloorAreaFilterOpen);
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
-                        ${sortConfig?.key === 'floorArea'
-                          ? 'bg-gray-900 text-white shadow-md'
-                          : 'bg-transparent text-gray-500 hover:bg-gray-100'
-                        }
-                    ${displayedResults.length < 2 ? 'opacity-50 cursor-not-allowed hidden' : ''}
-                    `}
-                    >
-                      Floor Area
-                      {sortConfig?.key === 'floorArea' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-                    </button>
-
-                    {isFloorAreaFilterOpen && createPortal(
-                      <div
-                        ref={floorAreaPopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
-                        style={{ top: `${popoverPositionFloor.top}px`, left: `${popoverPositionFloor.left}px` }}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Floor Area (SQM)</span>
-                          <button
-                            onClick={() => handleSort('floorArea')}
-                            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                            title="Toggle Sort Order"
-                          >
-                            {sortConfig?.key === 'floorArea' && sortConfig.direction === 'asc'
-                              ? <ArrowUp className="w-4 h-4 text-gray-700" />
-                              : <ArrowDown className="w-4 h-4 text-gray-700" />
-                            }
-                          </button>
-                        </div>
-
-                        <DualRangeSlider
-                          min={minGlobFloor}
-                          max={maxGlobFloor}
-                          step={sliderStepFloor}
-                          value={floorAreaRange || [minGlobFloor, maxGlobFloor]}
-                          onChange={(val) => setFloorAreaRange(val)}
-                          formatMinValue={(val) => {
-                            if (val >= 10000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.floor(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K SQM`;
-                            } else {
-                              return `${Math.floor(val / 10) * 10} SQM`;
-                            }
-                          }}
-                          formatMaxValue={(val) => {
-                            if (val >= 10000) {
-                              const thousands = val / 1000;
-                              const rounded = Math.ceil(thousands / 10) * 10;
-                              return `${rounded.toLocaleString()}K SQM`;
-                            } else {
-                              return `${Math.ceil(val / 10) * 10} SQM`;
-                            }
-                          }}
-                        />
-                      </div>,
-                      document.body
-                    )}
-                  </div>
-                </div>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-6 animate-fade-in-up w-full">
+            {/* Relevance Slider */}
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-gray-100 shadow-sm">
+              <div className="flex flex-col items-center leading-none select-none">
+                <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Exact</span>
+                <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Match</span>
               </div>
 
+              <input
+                type="range"
+                min="0"
+                max="4"
+                step="1"
+                value={(100 - relevanceScore) / 25}
+                onChange={(e) => {
+                  const index = parseInt(e.target.value);
+                  const newScore = 100 - (index * 25);
+                  setRelevanceScore(newScore);
+                }}
+                className="w-24 sm:w-28 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
+              />
 
-              {/* Instructional Text - Shows in middle when no selections */}
-              {selectedListings.length === 0 && (
-                <div className="w-full max-w-2xl mt-6 text-center animate-fade-in-up">
-                  <p className="text-sm text-gray-500 font-medium">
-                    If you're interested in any of our listings, please select up to 5 and send us the completed form.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
+              <div className="flex flex-col items-center leading-none select-none">
+                <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Broad</span>
+                <span className="text-[9px] sm:text-[10px] font-bold text-gray-900 uppercase tracking-wide">Match</span>
+              </div>
+            </div>
+
+            <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
+
+            {/* Sort Buttons */}
+            <div className="flex gap-2 bg-white p-1 rounded-full border border-gray-100 shadow-sm relative group-sort-controls">
+              <div className="relative">
+                <button
+                  ref={priceButtonRef}
+                  onClick={() => {
+                    if (sortConfig && sortConfig.key !== 'price') {
+                      setSortConfig(null);
+                    }
+                    setIsPriceFilterOpen(!isPriceFilterOpen);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
+                        ${sortConfig?.key === 'price'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-100'
+                    }
+                    `}
+                >
+                  Price
+                  {sortConfig?.key === 'price' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                </button>
+
+                {isPriceFilterOpen && createPortal(
+                  <div
+                    ref={pricePopoverRef}
+                    className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                    style={{ top: `${popoverPosition.top}px`, left: `${popoverPosition.left}px` }}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-gray-900">Price Range (PHP)</span>
+                      <button
+                        onClick={() => handleSort('price')}
+                        className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                        title="Toggle Sort Order"
+                      >
+                        {sortConfig?.key === 'price' && sortConfig.direction === 'asc'
+                          ? <ArrowUp className="w-4 h-4 text-gray-700" />
+                          : <ArrowDown className="w-4 h-4 text-gray-700" />
+                        }
+                      </button>
+                    </div>
+
+                    <DualRangeSlider
+                      min={minGlob}
+                      max={maxGlob}
+                      step={sliderStep}
+                      value={priceRange || [minGlob, maxGlob]}
+                      onChange={(val) => setPriceRange(val)}
+                      formatMinValue={(val) => {
+                        if (val >= 1000000) {
+                          const millions = val / 1000000;
+                          const rounded = Math.floor(millions / 10) * 10;
+                          return `${rounded.toLocaleString()}M`;
+                        } else if (val >= 1000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.floor(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K`;
+                        } else {
+                          return `${Math.floor(val / 10) * 10}`;
+                        }
+                      }}
+                      formatMaxValue={(val) => {
+                        if (val >= 1000000) {
+                          const millions = val / 1000000;
+                          const rounded = Math.ceil(millions / 10) * 10;
+                          return `${rounded.toLocaleString()}M`;
+                        } else if (val >= 1000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.ceil(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K`;
+                        } else {
+                          return `${Math.ceil(val / 10) * 10}`;
+                        }
+                      }}
+                    />
+                  </div>,
+                  document.body
+                )}
+              </div>
+
+              {/* Price/Sqm Button */}
+              <div className="relative">
+                <button
+                  ref={pricePerSqmButtonRef}
+                  onClick={() => {
+                    if (sortConfig && sortConfig.key !== 'pricePerSqm') {
+                      setSortConfig(null);
+                    }
+                    setIsPricePerSqmFilterOpen(!isPricePerSqmFilterOpen);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
+                    ${sortConfig?.key === 'pricePerSqm'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-100'
+                    }
+                `}
+                >
+                  Price/Sqm
+                  {sortConfig?.key === 'pricePerSqm' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                </button>
+
+                {isPricePerSqmFilterOpen && createPortal(
+                  <div
+                    ref={pricePerSqmPopoverRef}
+                    className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                    style={{ top: `${popoverPositionPerSqm.top}px`, left: `${popoverPositionPerSqm.left}px` }}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-gray-900">Price/Sqm Range</span>
+                      <button
+                        onClick={() => handleSort('pricePerSqm')}
+                        className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                        title="Toggle Sort Order"
+                      >
+                        {sortConfig?.key === 'pricePerSqm' && sortConfig.direction === 'asc'
+                          ? <ArrowUp className="w-4 h-4 text-gray-700" />
+                          : <ArrowDown className="w-4 h-4 text-gray-700" />
+                        }
+                      </button>
+                    </div>
+
+                    <DualRangeSlider
+                      min={minGlobPerSqm}
+                      max={maxGlobPerSqm}
+                      step={sliderStepPerSqm}
+                      value={pricePerSqmRange || [minGlobPerSqm, maxGlobPerSqm]}
+                      onChange={(val) => setPricePerSqmRange(val)}
+                      formatMinValue={(val) => {
+                        if (val >= 1000000) {
+                          const millions = val / 1000000;
+                          const rounded = Math.floor(millions / 10) * 10;
+                          return `${rounded.toLocaleString()}M`;
+                        } else if (val >= 1000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.floor(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K`;
+                        } else {
+                          return `${Math.floor(val / 10) * 10}`;
+                        }
+                      }}
+                      formatMaxValue={(val) => {
+                        if (val >= 1000000) {
+                          const millions = val / 1000000;
+                          const rounded = Math.ceil(millions / 10) * 10;
+                          return `${rounded.toLocaleString()}M`;
+                        } else if (val >= 1000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.ceil(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K`;
+                        } else {
+                          return `${Math.ceil(val / 10) * 10}`;
+                        }
+                      }}
+                    />
+                  </div>,
+                  document.body
+                )}
+              </div>
+
+              {/* Lot Area Button */}
+              <div className="relative">
+                <button
+                  ref={lotAreaButtonRef}
+                  onClick={() => {
+                    if (sortConfig && sortConfig.key !== 'lotArea') {
+                      setSortConfig(null);
+                    }
+                    setIsLotAreaFilterOpen(!isLotAreaFilterOpen);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
+                    ${sortConfig?.key === 'lotArea'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-100'
+                    }
+                `}
+                >
+                  Lot Area
+                  {sortConfig?.key === 'lotArea' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                </button>
+
+                {isLotAreaFilterOpen && createPortal(
+                  <div
+                    ref={lotAreaPopoverRef}
+                    className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                    style={{ top: `${popoverPositionLot.top}px`, left: `${popoverPositionLot.left}px` }}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-gray-900">Lot Area (SQM)</span>
+                      <button
+                        onClick={() => handleSort('lotArea')}
+                        className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                        title="Toggle Sort Order"
+                      >
+                        {sortConfig?.key === 'lotArea' && sortConfig.direction === 'asc'
+                          ? <ArrowUp className="w-4 h-4 text-gray-700" />
+                          : <ArrowDown className="w-4 h-4 text-gray-700" />
+                        }
+                      </button>
+                    </div>
+
+                    <DualRangeSlider
+                      min={minGlobLot}
+                      max={maxGlobLot}
+                      step={sliderStepLot}
+                      value={lotAreaRange || [minGlobLot, maxGlobLot]}
+                      onChange={(val) => setLotAreaRange(val)}
+                      formatMinValue={(val) => {
+                        if (val >= 10000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.floor(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K SQM`;
+                        } else {
+                          return `${Math.floor(val / 10) * 10} SQM`;
+                        }
+                      }}
+                      formatMaxValue={(val) => {
+                        if (val >= 10000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.ceil(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K SQM`;
+                        } else {
+                          return `${Math.ceil(val / 10) * 10} SQM`;
+                        }
+                      }}
+                    />
+                  </div>,
+                  document.body
+                )}
+              </div>
+
+              {/* Floor Area Button */}
+              <div className="relative">
+                <button
+                  ref={floorAreaButtonRef}
+                  onClick={() => {
+                    if (sortConfig && sortConfig.key !== 'floorArea') {
+                      setSortConfig(null);
+                    }
+                    setIsFloorAreaFilterOpen(!isFloorAreaFilterOpen);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 whitespace-nowrap
+                    ${sortConfig?.key === 'floorArea'
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-100'
+                    }
+                `}
+                >
+                  Floor Area
+                  {sortConfig?.key === 'floorArea' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                </button>
+
+                {isFloorAreaFilterOpen && createPortal(
+                  <div
+                    ref={floorAreaPopoverRef}
+                    className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                    style={{ top: `${popoverPositionFloor.top}px`, left: `${popoverPositionFloor.left}px` }}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-bold text-gray-900">Floor Area (SQM)</span>
+                      <button
+                        onClick={() => handleSort('floorArea')}
+                        className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                        title="Toggle Sort Order"
+                      >
+                        {sortConfig?.key === 'floorArea' && sortConfig.direction === 'asc'
+                          ? <ArrowUp className="w-4 h-4 text-gray-700" />
+                          : <ArrowDown className="w-4 h-4 text-gray-700" />
+                        }
+                      </button>
+                    </div>
+
+                    <DualRangeSlider
+                      min={minGlobFloor}
+                      max={maxGlobFloor}
+                      step={sliderStepFloor}
+                      value={floorAreaRange || [minGlobFloor, maxGlobFloor]}
+                      onChange={(val) => setFloorAreaRange(val)}
+                      formatMinValue={(val) => {
+                        if (val >= 10000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.floor(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K SQM`;
+                        } else {
+                          return `${Math.floor(val / 10) * 10} SQM`;
+                        }
+                      }}
+                      formatMaxValue={(val) => {
+                        if (val >= 10000) {
+                          const thousands = val / 1000;
+                          const rounded = Math.ceil(thousands / 10) * 10;
+                          return `${rounded.toLocaleString()}K SQM`;
+                        } else {
+                          return `${Math.ceil(val / 10) * 10} SQM`;
+                        }
+                      }}
+                    />
+                  </div>,
+                  document.body
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Floating Selection Status Bar - Only shows when selections > 0 */}

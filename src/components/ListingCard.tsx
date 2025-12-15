@@ -39,22 +39,20 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, isSelected = 
                             {listing.saleType}
                         </span>
                     )}
+                </div>
+                <div className="flex items-center gap-3">
                     {listing.facebookLink && (
                         <a
                             href={listing.facebookLink}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center justify-center w-6 h-6 rounded-full bg-[#1877F2] text-white hover:opacity-90 transition-opacity"
+                            className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-900 text-white hover:bg-[#1877F2] transition-colors"
                             title="View on Facebook"
                         >
-                            <Facebook size={14} fill="currentColor" strokeWidth={0} />
+                            <Facebook size={16} fill="currentColor" strokeWidth={0} />
                         </a>
                     )}
-                </div>
-                <div className="flex items-center gap-2">
-                    {/* Checkbox removed per update - Card is clickable */}
-
                     <span className="text-lg font-bold text-black font-mono">{listing.id}</span>
                 </div>
             </div>

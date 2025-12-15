@@ -50,6 +50,16 @@ export const searchListings = (listings: Listing[], query: string, minScore: num
             meetsCriteria = false;
         }
 
+        // 3. Strict "Manila" Filter
+        // If user searches "Manila" (without "Metro"), restrict to Manila City only.
+        // We avoid matching "Metro Manila" (the region) which appears in all addresses.
+        const isStrictManilaSearch = queryTokens.includes('manila') && !queryTokens.includes('metro');
+        if (isStrictManilaSearch) {
+            if (listing.city.trim().toLowerCase() !== 'manila') {
+                meetsCriteria = false;
+            }
+        }
+
         if (!meetsCriteria) return { listing, score: -1 };
 
         // --- SCORING (Relevance) ---

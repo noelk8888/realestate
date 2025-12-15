@@ -10,6 +10,63 @@ interface DualRangeSliderProps {
     formatMaxValue?: (val: number) => string;
 }
 
+interface EditableLabelProps {
+    value: number;
+    format?: (val: number) => string;
+    onCommit: (val: number) => void;
+}
+
+const EditableLabel: React.FC<EditableLabelProps> = ({ value, format, onCommit }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [tempVal, setTempVal] = useState(value.toString());
+
+    useEffect(() => {
+        setTempVal(value.toString());
+    }, [value]);
+
+    const handleCommit = () => {
+        const newVal = parseFloat(tempVal);
+        if (isNaN(newVal)) {
+            setIsEditing(false);
+            setTempVal(value.toString());
+            return;
+        }
+        onCommit(newVal);
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <input
+                autoFocus
+                type="number"
+                value={tempVal}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setTempVal(e.target.value)}
+                onBlur={handleCommit}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCommit();
+                    if (e.key === 'Escape') {
+                        setTempVal(value.toString());
+                        setIsEditing(false);
+                    }
+                }}
+                className="w-24 p-1 text-sm font-mono border-2 border-blue-500 rounded bg-white text-gray-900 shadow-lg outline-none text-center z-50"
+            />
+        );
+    }
+
+    return (
+        <span
+            onClick={() => setIsEditing(true)}
+            className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-2 py-0.5 rounded transition-all select-none border border-transparent hover:border-blue-200"
+            title="Click to edit value"
+        >
+            {format ? format(value) : value}
+        </span>
+    );
+};
+
 export const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step = 1, value, onChange, formatMinValue, formatMaxValue }) => {
     const [minVal, setMinVal] = useState(value[0]);
     const [maxVal, setMaxVal] = useState(value[1]);
@@ -48,16 +105,52 @@ export const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step
         }
     }, [maxVal, min, max]);
 
-    return (
-        <div className="flex flex-col w-full py-2 px-2 items-center">
+    const updateMin = (newVal: number) => {
+        let val = newVal;
+        // Constraints
+        val = Math.max(val, min); // limitMin (global min)
+        val = Math.min(val, max); // limitMax (global max) - though logically for min handle, max is value[1]
 
-            {/* Labels above slider, aligned at ends */}
-            <div className="flex justify-between w-full text-sm font-bold text-gray-700 font-mono mb-2">
-                <span>{formatMinValue ? formatMinValue(minVal) : minVal}</span>
-                <span>{formatMaxValue ? formatMaxValue(maxVal) : maxVal}</span>
+        // Cross-check: min handle must be < max handle
+        // We use maxValRef.current to be safe, but state maxVal is also fine
+        val = Math.min(val, maxVal - (step || 1));
+
+        setMinVal(val);
+        minValRef.current = val;
+        onChange([val, maxVal]);
+    };
+
+    const updateMax = (newVal: number) => {
+        let val = newVal;
+        // Constraints
+        val = Math.max(val, min);
+        val = Math.min(val, max);
+
+        // Cross-check: max handle must be > min handle
+        val = Math.max(val, minVal + (step || 1));
+
+        setMaxVal(val);
+        maxValRef.current = val;
+        onChange([minVal, val]);
+    };
+
+    return (
+        <div className="flex flex-col w-full gap-2">
+            <div className="flex justify-between items-center px-1">
+                <EditableLabel
+                    value={minVal}
+                    format={formatMinValue}
+                    onCommit={updateMin}
+                />
+                <EditableLabel
+                    value={maxVal}
+                    format={formatMaxValue}
+                    onCommit={updateMax}
+                />
             </div>
 
-            <div className="relative w-full h-5 flex items-center">
+            <div className="relative w-full h-6 flex items-center select-none pt-2">
+                {/* Track Background */}
                 <input
                     type="range"
                     min={min}
@@ -127,3 +220,5 @@ export const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step
         </div>
     );
 };
+
+
