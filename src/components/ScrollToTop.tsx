@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import kiuLogo from '../assets/kiu_logo.png';
+import kiuLogo from '../assets/kiu_logo_centered.png';
 
 export const ScrollToTop = () => {
     const [isVisible, setIsVisible] = useState(false);
@@ -36,17 +36,14 @@ export const ScrollToTop = () => {
                     className="fixed bottom-8 right-8 z-[9999] flex flex-col items-center justify-center p-0 bg-transparent border-none outline-none group transition-transform duration-300 hover:scale-110 active:scale-95"
                     aria-label="Scroll to top"
                 >
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#D4AF37] relative bg-black flex items-center justify-center shadow-2xl">
-                        {/* Gradient overlay for premium feel */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent pointer-events-none"></div>
-
+                    <div className="w-14 h-14 rounded-full overflow-hidden relative bg-gray-100 flex items-center justify-center shadow-2xl">
                         <img
                             src={kiuLogo}
                             alt="Back to Top"
-                            className="w-full h-full object-contain p-1"
+                            className="w-full h-full object-contain p-0.5"
                         />
                     </div>
-                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white/80 px-1.5 py-0.5 rounded-full shadow-sm backdrop-blur-sm border border-gray-200">
+                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-gray-100/90 px-1.5 py-0.5 rounded-full shadow-sm backdrop-blur-sm border border-gray-200">
                         Back to Top
                     </span>
                 </button>
