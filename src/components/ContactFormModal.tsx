@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import ReCAPTCHA from "react-google-recaptcha";
 
 interface ContactFormModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
     selectedListings,
 }) => {
     const [formData, setFormData] = useState({
+        name: '',
         email: '',
         viberNumber: '',
         buyerType: 'Direct Buyer' as 'Broker' | 'Direct Buyer',
@@ -21,27 +23,28 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-    // Simple CAPTCHA: random math question
-    const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
+    const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
     const [captchaError, setCaptchaError] = useState('');
 
-    // Generate new CAPTCHA on mount and when modal opens
+    // Reset captcha on close
     useEffect(() => {
-        if (isOpen) {
-            generateCaptcha();
+        if (!isOpen) {
+            setRecaptchaToken(null);
+            setCaptchaError('');
+            setSubmitStatus('idle');
         }
     }, [isOpen]);
 
-    const generateCaptcha = () => {
-        const num1 = Math.floor(Math.random() * 10) + 1;
-        const num2 = Math.floor(Math.random() * 10) + 1;
-        setCaptcha({ num1, num2, answer: '' });
-        setCaptchaError('');
-    };
-
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
+
+        // Name validation
+        if (!formData.name.trim()) {
+            newErrors.name = 'Name is required';
+        }
 
         // Email validation
         if (!formData.email) {
@@ -60,11 +63,9 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
             newErrors.privacy = 'You must accept the privacy policy';
         }
 
-        // CAPTCHA validation
-        const captchaAnswer = parseInt(captcha.answer);
-        if (isNaN(captchaAnswer) || captchaAnswer !== captcha.num1 + captcha.num2) {
-            setCaptchaError('Incorrect answer. Please try again.');
-            generateCaptcha();
+        // reCAPTCHA validation
+        if (!recaptchaToken) {
+            setCaptchaError('Please complete the security check.');
             return false;
         }
 
@@ -72,47 +73,53 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) {
             return;
         }
 
-        // Generate mailto link
-        const subject = `Property Inquiry - ${selectedListings.length} Listing${selectedListings.length > 1 ? 's' : ''}`;
+        setIsSubmitting(true);
+        setSubmitStatus('idle');
 
-        const body = `
-Hello,
+        // Google Form Submission Logic
+        const GOOGLE_FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSe1p0vscPeDlB3BILrQ9eMuO-BFg8AdMpW4UaCfIWVRXvhv1w/formResponse";
 
-I am interested in the following properties:
-${selectedListings.join(', ')}
+        const formBody = new FormData();
+        // Mapping fields to Google Form Entry IDs
+        formBody.append("entry.2145992684", formData.name);
+        formBody.append("entry.1794044649", formData.email);
+        formBody.append("entry.739228677", formData.viberNumber);
+        formBody.append("entry.1511942672", formData.buyerType);
+        formBody.append("entry.1683582038", selectedListings.join(', '));
+        formBody.append("entry.1094424884", formData.additionalQuestions);
 
-My Contact Information:
-- Email: ${formData.email}
-- Viber Number: ${formData.viberNumber}
-- I am a: ${formData.buyerType}
+        try {
+            await fetch(GOOGLE_FORM_ACTION_URL, {
+                method: "POST",
+                mode: "no-cors", // Important for submitting to Google Forms from client-side
+                body: formBody
+            });
 
-${formData.additionalQuestions ? `Additional Questions/Comments:\n${formData.additionalQuestions}\n` : ''}
-Thank you for your assistance.
+            setSubmitStatus('success');
 
-Best regards
-    `.trim();
-
-        const mailtoLink = `mailto:leslie@luxerealtyph.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-        // Open user's email client
-        window.location.href = mailtoLink;
-
-        // Close modal and reset form after a short delay
-        setTimeout(() => {
-            onClose();
-            resetForm();
-        }, 500);
+            // Close modal and reset form after success message
+            setTimeout(() => {
+                onClose();
+                resetForm();
+            }, 2000);
+        } catch (error) {
+            console.error("Form submission error:", error);
+            setSubmitStatus('error');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const resetForm = () => {
         setFormData({
+            name: '',
             email: '',
             viberNumber: '',
             buyerType: 'Direct Buyer',
@@ -120,7 +127,9 @@ Best regards
         });
         setPrivacyAccepted(false);
         setErrors({});
-        generateCaptcha();
+        setSubmitStatus('idle');
+        setRecaptchaToken(null);
+        setCaptchaError('');
     };
 
     const handleClose = () => {
@@ -134,7 +143,7 @@ Best regards
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 p-4">
             <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
                     <h2 className="text-2xl font-bold text-gray-900">Property Inquiry</h2>
                     <button
                         onClick={handleClose}
@@ -146,127 +155,163 @@ Best regards
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {/* Email */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email Address <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="your.email@example.com"
-                        />
-                        {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email}</p>}
-                    </div>
-
-                    {/* Viber Number */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Viber Number <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                            type="tel"
-                            value={formData.viberNumber}
-                            onChange={(e) => setFormData({ ...formData, viberNumber: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="+63 912 345 6789"
-                        />
-                        {errors.viberNumber && <p className="text-red-600 text-xs mt-1">{errors.viberNumber}</p>}
-                    </div>
-
-                    {/* Buyer Type */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            I am a <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            value={formData.buyerType}
-                            onChange={(e) => setFormData({ ...formData, buyerType: e.target.value as 'Broker' | 'Direct Buyer' })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                            <option value="Direct Buyer">Direct Buyer</option>
-                            <option value="Broker">Broker</option>
-                        </select>
-                    </div>
-
-                    {/* Selected Listings */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Selected Properties
-                        </label>
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                            <p className="text-sm text-gray-600">
-                                {selectedListings.join(', ')}
-                            </p>
+                    {submitStatus === 'success' ? (
+                        <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-green-800 mb-2">Inquiry Sent!</h3>
+                            <p className="text-gray-600">Thank you for your interest. We will get back to you shortly.</p>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            {submitStatus === 'error' && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                                    <span className="block sm:inline">Something went wrong. Please try again.</span>
+                                </div>
+                            )}
 
-                    {/* Additional Questions */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Additional Questions or Comments
-                        </label>
-                        <textarea
-                            value={formData.additionalQuestions}
-                            onChange={(e) => setFormData({ ...formData, additionalQuestions: e.target.value })}
-                            rows={4}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Any specific questions about the selected properties..."
-                        />
-                    </div>
+                            {/* Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Name <span className="text-red-600">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Your Full Name"
+                                    disabled={isSubmitting}
+                                />
+                                {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
+                            </div>
 
-                    {/* CAPTCHA */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Security Check <span className="text-red-600">*</span>
-                        </label>
-                        <div className="flex items-center gap-3">
-                            <span className="text-lg font-semibold text-gray-900">
-                                {captcha.num1} + {captcha.num2} =
-                            </span>
-                            <input
-                                type="number"
-                                value={captcha.answer}
-                                onChange={(e) => setCaptcha({ ...captcha, answer: e.target.value })}
-                                className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="?"
-                            />
-                        </div>
-                        {captchaError && <p className="text-red-600 text-xs mt-1">{captchaError}</p>}
-                    </div>
+                            {/* Email */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Email Address <span className="text-red-600">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="your.email@example.com"
+                                    disabled={isSubmitting}
+                                />
+                                {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email}</p>}
+                            </div>
 
-                    {/* Privacy Agreement */}
-                    <div>
-                        <label className="flex items-start gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={privacyAccepted}
-                                onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                                className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-xs text-gray-600">
-                                I agree to the collection and processing of my personal information for the purpose of
-                                responding to my inquiry about the selected properties. My data will be handled in accordance
-                                with applicable privacy laws and will not be shared with third parties without my consent.
-                                <span className="text-red-600"> *</span>
-                            </span>
-                        </label>
-                        {errors.privacy && <p className="text-red-600 text-xs mt-1">{errors.privacy}</p>}
-                    </div>
+                            {/* Viber Number */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Viber Number <span className="text-red-600">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={formData.viberNumber}
+                                    onChange={(e) => setFormData({ ...formData, viberNumber: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="+63 912 345 6789"
+                                    disabled={isSubmitting}
+                                />
+                                {errors.viberNumber && <p className="text-red-600 text-xs mt-1">{errors.viberNumber}</p>}
+                            </div>
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                        Open Email to Send Inquiry
-                    </button>
+                            {/* Buyer Type */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    I am a <span className="text-red-600">*</span>
+                                </label>
+                                <select
+                                    value={formData.buyerType}
+                                    onChange={(e) => setFormData({ ...formData, buyerType: e.target.value as 'Broker' | 'Direct Buyer' })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    disabled={isSubmitting}
+                                >
+                                    <option value="Direct Buyer">Direct Buyer</option>
+                                    <option value="Broker">Broker</option>
+                                </select>
+                            </div>
 
-                    <p className="text-xs text-gray-500 text-center">
-                        This will open your email app with a pre-filled message. Click Send to submit your inquiry.
-                    </p>
+                            {/* Selected Listings */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Selected Properties
+                                </label>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <p className="text-sm text-gray-600">
+                                        {selectedListings.join(', ')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Additional Questions */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Additional Questions or Comments
+                                </label>
+                                <textarea
+                                    value={formData.additionalQuestions}
+                                    onChange={(e) => setFormData({ ...formData, additionalQuestions: e.target.value })}
+                                    rows={4}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Any specific questions about the selected properties..."
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+
+                            {/* CAPTCHA */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Security Check <span className="text-red-600">*</span>
+                                </label>
+                                <div className="flex flex-col gap-2">
+                                    <ReCAPTCHA
+                                        sitekey="6Ld_jS0sAAAAAJKt-yESQBd90nDTmpYBI4zrRH7N"
+                                        onChange={(token) => {
+                                            setRecaptchaToken(token);
+                                            setCaptchaError('');
+                                        }}
+                                    />
+                                    {captchaError && <p className="text-red-600 text-xs">{captchaError}</p>}
+                                </div>
+                            </div>
+
+                            {/* Privacy Agreement */}
+                            <div>
+                                <label className="flex items-start gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={privacyAccepted}
+                                        onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                        disabled={isSubmitting}
+                                    />
+                                    <span className="text-xs text-gray-600">
+                                        I agree to the collection and processing of my personal information for the purpose of
+                                        responding to my inquiry about the selected properties. My data will be handled in accordance
+                                        with applicable privacy laws and will not be shared with third parties without my consent.
+                                        <span className="text-red-600"> *</span>
+                                    </span>
+                                </label>
+                                {errors.privacy && <p className="text-red-600 text-xs mt-1">{errors.privacy}</p>}
+                            </div>
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className={`w-full text-white py-3 rounded-lg font-semibold transition-colors
+                                ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                            >
+                                {isSubmitting ? 'Sending...' : 'Submit Inquiry'}
+                            </button>
+                        </>
+                    )}
                 </form>
             </div>
         </div>
