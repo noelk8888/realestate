@@ -47,9 +47,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
         }
 
         // Email validation
-        if (!formData.email) {
-            newErrors.email = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Invalid email format';
         }
 
@@ -192,7 +190,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                             {/* Email */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Email Address <span className="text-red-600">*</span>
+                                    Email Address
                                 </label>
                                 <input
                                     type="email"
