@@ -9,6 +9,7 @@ import { ListingCard } from './components/ListingCard';
 import { ContactFormModal } from './components/ContactFormModal';
 import Pagination from './components/Pagination';
 import { ScrollToTop } from './components/ScrollToTop';
+import kiuLogo from './assets/kiu_logo_centered.png';
 
 function App() {
 
@@ -541,6 +542,13 @@ function App() {
         }`}>
         <div className={`w-full max-w-2xl text-center space-y-6 transition-all duration-500 ${(hasSearched || selectedType || selectedCategory) ? 'translate-y-0' : '-translate-y-8'
           }`}>
+          <div className="flex justify-center mb-6">
+            <img
+              src={kiuLogo}
+              alt="KIU Realty PH"
+              className={`object-contain transition-all duration-500 ${(hasSearched || selectedType || selectedCategory) ? 'h-16' : 'h-24 sm:h-32'}`}
+            />
+          </div>
           <p className={`font-bold text-gray-900 tracking-tight transition-all duration-500 ${(hasSearched || selectedType || selectedCategory) ? 'text-2xl mb-4' : 'text-4xl sm:text-5xl mb-8'}`}>
             {(selectedType || selectedCategory || hasSearched)
               ? `Found ${displayedResults.length} of ${allListings.length} Available Listings`
@@ -993,7 +1001,7 @@ function App() {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 italic mt-0.5 ml-1">If interested, you may choose up to 5 listings</p>
+              <p className="text-[11px] text-gray-500 italic mt-0.5 ml-1">If interested, you may choose up to 5 listings and submit the form</p>
             </div>
 
             {/* Right Column: Area Filters Sidebar (Adjusted Width) */}
