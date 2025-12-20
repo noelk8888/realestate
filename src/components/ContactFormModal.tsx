@@ -34,7 +34,6 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
     }, [isOpen, initialSuggestedEdit]);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -60,10 +59,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
 
 
 
-        // Privacy acceptance
-        if (!privacyAccepted) {
-            newErrors.privacy = 'You must accept the privacy policy';
-        }
+
 
         // reCAPTCHA validation
         if (!recaptchaToken) {
@@ -127,7 +123,6 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
             buyerType: 'Direct Buyer',
             additionalQuestions: '',
         });
-        setPrivacyAccepted(false);
         setErrors({});
         setSubmitStatus('idle');
         setRecaptchaToken(null);
@@ -164,7 +159,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
                             </div>
-                            <h3 className="text-xl font-bold text-green-800 mb-2">Inquiry Sent!</h3>
+                            <h3 className="text-xl font-bold text-green-800 mb-2">Suggestion Sent!</h3>
                             <p className="text-gray-600">Thank you for your interest. We will get back to you shortly.</p>
                         </div>
                     ) : (
@@ -237,25 +232,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* Privacy Agreement */}
-                            <div>
-                                <label className="flex items-start gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={privacyAccepted}
-                                        onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                                        disabled={isSubmitting}
-                                    />
-                                    <span className="text-xs text-gray-600">
-                                        I agree to the collection and processing of my personal information for the purpose of
-                                        responding to my inquiry about the selected properties. My data will be handled in accordance
-                                        with applicable privacy laws and will not be shared with third parties without my consent.
-                                        <span className="text-red-600"> *</span>
-                                    </span>
-                                </label>
-                                {errors.privacy && <p className="text-red-600 text-xs mt-1">{errors.privacy}</p>}
-                            </div>
+
 
                             {/* Submit Button */}
                             <button
@@ -264,7 +241,7 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                                 className={`w-full text-white py-3 rounded-lg font-semibold transition-colors
                                 ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                             >
-                                {isSubmitting ? 'Sending...' : 'Submit Inquiry'}
+                                {isSubmitting ? 'Sending...' : 'Submit FORM'}
                             </button>
                         </>
                     )}
