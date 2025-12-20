@@ -580,7 +580,7 @@ function App() {
                     onClick={() => setSelectedType(current => current === filter ? null : filter)}
                     className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[50px] whitespace-nowrap
                           ${isActive
-                        ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
+                        ? 'bg-blue-600 text-white shadow-sm z-10'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
                       }
                     `}
@@ -625,7 +625,7 @@ function App() {
                     onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
                     className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
                           ${isActive
-                        ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
+                        ? 'bg-blue-600 text-white shadow-sm z-10'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
                       }
                     `}
