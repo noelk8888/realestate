@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import ReCAPTCHA from "react-google-recaptcha";
+
 
 interface ContactFormModalProps {
     isOpen: boolean;
@@ -37,14 +37,9 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-    const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
-    const [captchaError, setCaptchaError] = useState('');
-
-    // Reset captcha on close
+    // Reset form state on close
     useEffect(() => {
         if (!isOpen) {
-            setRecaptchaToken(null);
-            setCaptchaError('');
             setSubmitStatus('idle');
         }
     }, [isOpen]);
@@ -60,12 +55,6 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
 
 
 
-
-        // reCAPTCHA validation
-        if (!recaptchaToken) {
-            setCaptchaError('Please complete the security check.');
-            return false;
-        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -128,8 +117,6 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
         });
         setErrors({});
         setSubmitStatus('idle');
-        setRecaptchaToken(null);
-        setCaptchaError('');
     };
 
     const handleClose = () => {
@@ -218,22 +205,6 @@ export const ContactFormModal: React.FC<ContactFormModalProps> = ({
                                 />
                             </div>
 
-                            {/* CAPTCHA */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Security Check <span className="text-red-600">*</span>
-                                </label>
-                                <div className="flex flex-col gap-2">
-                                    <ReCAPTCHA
-                                        sitekey="6Ld_jS0sAAAAAJKt-yESQBd90nDTmpYBI4zrRH7N"
-                                        onChange={(token) => {
-                                            setRecaptchaToken(token);
-                                            setCaptchaError('');
-                                        }}
-                                    />
-                                    {captchaError && <p className="text-red-600 text-xs">{captchaError}</p>}
-                                </div>
-                            </div>
 
 
 
