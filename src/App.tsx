@@ -174,13 +174,13 @@ function App() {
     const examples = [
       "Lot in Quezon City",
       "Condo in Makati",
-      "Sunvalley Lower Skyway",
+      "Sunvalley Estates",
       "Office Space in Ortigas",
       "Warehouse in Paranaque",
       "CommercialLot in Caloocan",
       "Agri Land in Bulacan",
-      "SMDC Blue Condo",
-      "BGC Conddo"
+      "SMDC Blue Residences",
+      "Luxurious BGC Condo"
     ];
     let index = 0;
     const interval = setInterval(() => {

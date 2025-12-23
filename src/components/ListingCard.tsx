@@ -237,13 +237,24 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
             </div>
 
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                {listing.photoLink && (
+                    <a
+                        href={listing.photoLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 text-center py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-indigo-100 transition-colors uppercase tracking-wider"
+                    >
+                        PHOTO
+                    </a>
+                )}
                 {listing.mapLink && (
                     <a
                         href={listing.mapLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
+                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
                     >
                         MAP
                     </a>

@@ -27,7 +27,7 @@ export interface Listing {
     columnP: string; // Col P
     category: string; // Column B
     facebookLink?: string; // Col R
-    photoLink?: string; // Col O
+    photoLink?: string; // Col AB
     mapLink?: string; // Col U
     columnV?: string; // Col V
     isDirect: boolean; // Col W
