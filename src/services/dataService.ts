@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import { PropertyType } from '../types';
 import type { Listing } from '../types';
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1OYk_LGiLYb_ayGoVJ-tistDias2VdETdR60SP5ALBlo/export?format=csv';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1OYk_LGiLYb_ayGoVJ-tistDias2VdETdR60SP5ALBlo/export?format=csv&gid=628592557';
 
 export const fetchListings = async (): Promise<Listing[]> => {
     try {
@@ -21,7 +21,7 @@ export const fetchListings = async (): Promise<Listing[]> => {
 
                     const cleanedData = dataRows
                         .map(normalizeListing)
-                        .filter(l => l.status?.toLowerCase().includes('available') && l.price > 0);
+                        .filter(l => l.price > 0 || l.leasePrice > 0); // Display if has Price OR Lease Price
                     resolve(cleanedData);
                 },
                 error: (error: Error) => {
@@ -42,17 +42,37 @@ const normalizeListing = (row: string[]): Listing => {
         return parseFloat(val.replace(/[P,php\s]/gi, '').replace(/,/g, '')) || 0;
     };
 
-    // DEBUG: Log G00024
-    if (row[19] === 'G00024') {
-        console.log('DEBUG G00024 RAW:', row);
-        console.log('DEBUG G00024 Index 21 (Col V):', row[21]);
+    // Column Indices (0-based) from Sheet4:
+    // A=0, Z=25, AB=27, AC=28, AD=29, AE=30, AF=31, AG=32, AH=33, AI=34, AJ=35
+    // AK=36, AL=37, AM=38, AN=39, AP=41, AQ=42, AR=43, AS=44, AT=45, AU=46, AV=47, AW=48, BE=56
+
+    const price = parseNumber(row[44]); // Col AS
+    const leasePrice = parseNumber(row[46]); // Col AU
+
+    // Determine Sale Type Logic
+    let saleType = '';
+    if (price > 0 && leasePrice > 0) {
+        saleType = 'SALE/LEASE';
+    } else if (price > 0) {
+        saleType = 'FOR SALE';
+    } else if (leasePrice > 0) {
+        saleType = 'FOR LEASE';
     }
 
-    // Column Mappings (0-indexed)
-    // A=0, E=4, F=5, G=6, O=14, T=19, X=23, Y=24, Z=25, AA=26, AB=27, AC=28, AD=29
+    // Category Logic (Cols AK, AL, AM, AN -> 36, 37, 38, 39)
+    // Join non-empty values
+    const category = [row[36], row[37], row[38], row[39]]
+        .filter(c => c && c.trim() !== '')
+        .join(', ');
 
-    const lotArea = parseNumber(row[4]); // Col E
-    const floorArea = parseNumber(row[5]); // Col F
+    // Summary Logic (Col AA -> 26)
+    const rawSummary = row[26] || '';
+    const summaryLines = rawSummary.split('\n');
+    const fullSummary = rawSummary;
+    const displaySummary = summaryLines.length > 1 ? summaryLines.slice(1).join('\n') : rawSummary;
+
+    const lotArea = parseNumber(row[41]); // Col AP
+    const floorArea = parseNumber(row[42]); // Col AQ
 
     // Type Inference Logic
     let type: PropertyType = PropertyType.Unknown;
@@ -62,8 +82,8 @@ const normalizeListing = (row: string[]): Listing => {
         type = PropertyType.Lot;
     }
 
-    // Parse Coordinates from Column AH (Index 33)
-    const rawCoords = row[33] || '';
+    // Parse Coordinates from Column BE (Index 56)
+    const rawCoords = row[56] || '';
     let lat = 0;
     let lng = 0;
     if (rawCoords.includes(',')) {
@@ -72,35 +92,50 @@ const normalizeListing = (row: string[]): Listing => {
         lng = parseFloat(lngStr.trim()) || 0;
     }
 
+    const columnV = row[48] || ''; // Col AW (Comments)
+    const summaryWithV = columnV ? `${fullSummary}\n\n${columnV}` : fullSummary;
+
     return {
-        id: row[19] || '', // Col T
-        summary: row[0] || '', // Col A
-        price: parseNumber(row[6]), // Col G
-        status: row[14] || '', // Col O
-        saleType: row[7] || '', // Col H
-        pricePerSqm: parseNumber(row[23]), // Col X
-        region: row[24] || '', // Col Y
-        province: row[25] || '', // Col Z
-        city: row[26] || '', // Col AA
-        barangay: row[27] || '', // Col AB
-        area: row[28] || '', // Col AC
-        building: row[29] || '', // Col AD
-        columnJ: row[9] || '', // Col J
-        columnK: row[10] || '', // Col K
-        columnM: row[12] || '', // Col M
-        columnN: row[13] || '', // Col N
-        columnP: row[15] || '', // Col P
-        columnAE: row[30] || '', // Col AE
-        category: row[1] || '', // Col B
-        facebookLink: row[17] || '', // Col R
-        photoLink: row[16] || '', // Col Q
-        mapLink: row[20] || '', // Col U
-        columnV: row[21] || '', // Col V
-        isDirect: (row[22] || '').trim().toUpperCase() === 'YES', // Col W
+        id: row[28] || '', // Col AC
+        summary: summaryWithV, // Full text for copy including monthly dues
+        displaySummary: displaySummary, // Text without first line for UI
+        price: price, // Col AS
+        status: 'Available', // Default to Available since we don't have a status col mapped explicitly in request? 
+        // Wait, user request didn't map Status (O in old). 
+        // Request says "category - if any 1 or 4 of the COL AK to AN is not empty"
+        // Use 'Available' as default or map if needed. 
+        // Logic for Status was previously O. New mapping doesn't mention it.
+        // I will default to 'Available' for now to ensure display.
+        saleType: saleType, // Derived
+        pricePerSqm: parseNumber(row[45]), // Col AT
+        region: row[30] || '', // Col AE
+        province: row[31] || '', // Col AF
+        city: row[32] || '', // Col AG
+        barangay: row[33] || '', // Col AH
+        area: row[34] || '', // Col AI
+        building: row[35] || '', // Col AJ
+
+        // Mapped to match existing UI usage where possible or generic fields
+        columnJ: '',
+        columnK: row[10] || '', // Col K (Owner/Broker)
+        columnM: '',
+        columnN: '',
+        columnP: '',
+        columnAE: row[43] || '', // Col AR
+
+        category: category,
+        facebookLink: row[25] || '', // Col Z
+        photoLink: row[27] || '', // Col AB
+        mapLink: row[29] || '', // Col AD
+        columnV: row[48] || '', // Col AW (Comments)
+        isDirect: (row[40]?.toUpperCase().includes('DIRECT')) || (rawSummary.toUpperCase().includes('DIRECT')), // Col AO or Summary fallback
+
         lat,
         lng,
         lotArea,
         floorArea,
-        type
+        type,
+        leasePrice: leasePrice,
+        leasePricePerSqm: parseNumber(row[47]) // Col AV
     };
 };

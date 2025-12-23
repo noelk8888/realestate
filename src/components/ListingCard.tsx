@@ -10,20 +10,20 @@ interface ListingCardProps {
     onNotesClick?: (id: string) => void;
     onMapClick?: (listing: Listing) => void;
     index?: number;
+    activeFilter?: string | null;
 }
 
-export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, isSelected = false, isDisabled = false, onNotesClick, onMapClick, index }) => {
+export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, isSelected = false, isDisabled = false, onNotesClick, onMapClick, index, activeFilter }) => {
     const [isCopied, setIsCopied] = useState(false);
     const [isColumnKCopied, setIsColumnKCopied] = useState(false);
 
     const [isExpanded, setIsExpanded] = useState(false);
 
     const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP',
+        const formatted = new Intl.NumberFormat('en-PH', {
             maximumFractionDigits: 0
         }).format(price);
+        return `P${formatted}`;
     };
 
     const handleCopy = (e: React.MouseEvent) => {
@@ -66,22 +66,17 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
                 ${isDisabled && !isSelected ? 'opacity-50' : ''}
             `}
         >
-            <div className="flex justify-between items-start mb-3">
-                <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-start mb-1">
+                <div className="flex flex-col gap-1.5 flex-1 mr-4">
                     {listing.columnK && (
                         <div
                             onClick={handleCopyColumnK}
-                            className={`text-sm font-bold leading-tight cursor-pointer transition-colors
+                            className={`text-sm font-extrabold leading-tight cursor-pointer transition-colors
                                 ${isColumnKCopied ? 'text-green-600' : 'text-gray-900 hover:text-blue-600'}
                             `}
                             title="Click to copy"
                         >
                             {isColumnKCopied ? 'COPIED!' : `${index ? `${index}. ` : ''}${listing.columnK}`}
-                        </div>
-                    )}
-                    {listing.columnP && (
-                        <div className="text-sm border p-1 rounded bg-green-50 text-green-800">
-                            {listing.columnP}
                         </div>
                     )}
                     <div className="flex gap-1.5 flex-wrap">
@@ -100,17 +95,17 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     {listing.facebookLink && (
                         <a
                             href={listing.facebookLink}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-900 text-white hover:bg-[#1877F2] transition-colors"
+                            className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-900 text-white hover:bg-[#1877F2] transition-colors"
                             title="View on Facebook"
                         >
-                            <Facebook size={16} fill="currentColor" strokeWidth={0} />
+                            <Facebook size={18} fill="currentColor" strokeWidth={0} />
                         </a>
                     )}
                     <div className="flex flex-col items-end">
@@ -119,37 +114,73 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
                                 e.stopPropagation();
                                 if (onMapClick) onMapClick(listing);
                             }}
-                            className="text-lg font-bold text-black font-mono cursor-pointer hover:text-blue-600 hover:underline transition-colors"
+                            className="text-2xl font-black text-black font-sans cursor-pointer hover:text-blue-600 hover:underline transition-colors tracking-tighter"
                             title="View on Map"
                         >
                             {listing.id}
                         </span>
-                        {(listing.columnN || listing.columnM) && (
-                            <span className="text-xs font-semibold text-gray-500">
-                                {listing.columnN || listing.columnM}
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>
 
-            <div className="mb-4">
-                <div className="text-xl font-bold text-gray-900">
-                    {formatPrice(listing.price)}
-                    {listing.pricePerSqm > 0 && (
-                        <span className="text-sm font-normal text-gray-500 ml-2">
-                            ({formatPrice(listing.pricePerSqm)}/sqm)
-                        </span>
+            <div className="mb-4 mt-2">
+                <div className="text-xl font-bold text-gray-900 flex flex-col gap-0.5">
+                    {activeFilter === 'Lease' ? (
+                        <>
+                            {listing.leasePrice > 0 && (
+                                <div className="flex items-baseline gap-1 text-gray-800">
+                                    <span className="text-xl font-bold">{formatPrice(listing.leasePrice)}/month</span>
+                                    {listing.leasePricePerSqm > 0 && (
+                                        <span className="text-sm font-normal text-gray-500">
+                                            ({formatPrice(listing.leasePricePerSqm)}/sqm)
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {listing.price > 0 && (
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl font-bold text-gray-900">{formatPrice(listing.price)}</span>
+                                    {listing.pricePerSqm > 0 && (
+                                        <span className="text-sm font-normal text-gray-500">
+                                            ({formatPrice(listing.pricePerSqm)}/sqm)
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {listing.price > 0 && (
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl font-bold text-gray-900">{formatPrice(listing.price)}</span>
+                                    {listing.pricePerSqm > 0 && (
+                                        <span className="text-sm font-normal text-gray-500">
+                                            ({formatPrice(listing.pricePerSqm)}/sqm)
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {listing.leasePrice > 0 && (
+                                <div className="flex items-baseline gap-1 text-gray-800">
+                                    <span className="text-xl font-bold">{formatPrice(listing.leasePrice)}/month</span>
+                                    {listing.leasePricePerSqm > 0 && (
+                                        <span className="text-sm font-normal text-gray-500">
+                                            ({formatPrice(listing.leasePricePerSqm)}/sqm)
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
-                {listing.summary && (
+                {listing.displaySummary && (
                     <div className="relative">
                         <div
                             className={`text-sm font-medium text-black mt-1 leading-relaxed whitespace-pre-line
                                 ${!isExpanded ? 'line-clamp-4' : ''}
                             `}
                         >
-                            {listing.summary}
+                            {listing.displaySummary}
                         </div>
                         <button
                             onClick={(e) => {
@@ -206,24 +237,13 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
             </div>
 
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
-                {listing.photoLink && (
-                    <a
-                        href={listing.photoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
-                    >
-                        PHOTO
-                    </a>
-                )}
                 {listing.mapLink && (
                     <a
                         href={listing.mapLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-center py-2 bg-blue-100 text-black rounded-lg text-xs font-bold hover:bg-blue-200 transition-colors uppercase tracking-wider"
+                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
                     >
                         MAP
                     </a>
@@ -233,7 +253,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
                     className={`flex-1 text-center py-2 rounded-lg text-xs font-bold transition-all duration-200 uppercase tracking-wider flex items-center justify-center gap-1
                         ${isCopied
                             ? 'bg-green-500 text-white scale-105 shadow-sm'
-                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }
                     `}
                 >
@@ -244,17 +264,12 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
                         e.stopPropagation();
                         onNotesClick && onNotesClick(listing.id);
                     }}
-                    className="flex-1 text-center py-2 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-bold hover:bg-yellow-200 transition-colors uppercase tracking-wider"
+                    className="flex-1 text-center py-2 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors uppercase tracking-wider"
                 >
                     NOTES
                 </button>
             </div>
 
-            {listing.columnV && (
-                <div className="mt-3 text-sm italic text-black border-t border-gray-100 pt-2">
-                    {listing.columnV}
-                </div>
-            )}
         </div>
     );
 });

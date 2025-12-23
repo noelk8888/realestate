@@ -174,11 +174,13 @@ function App() {
     const examples = [
       "Lot in Quezon City",
       "Condo in Makati",
+      "Sunvalley Lower Skyway",
       "Office Space in Ortigas",
       "Warehouse in Paranaque",
-      "Lot in Caloocan",
-      "Agricultural Land in Bulacan",
-      "BGC Condo"
+      "CommercialLot in Caloocan",
+      "Agri Land in Bulacan",
+      "SMDC Blue Condo",
+      "BGC Conddo"
     ];
     let index = 0;
     const interval = setInterval(() => {
@@ -252,12 +254,12 @@ function App() {
     // 1. Type Match Logic (If null, allow all types)
     let typeMatch = true;
     if (selectedType) {
-      const itemType = item.saleType?.toLowerCase() || '';
-      if (selectedType === 'Sale') typeMatch = (itemType === 'sale' || itemType === 'sale/lease' || itemType === 'sale or lease');
-      else if (selectedType === 'Lease') typeMatch = (itemType === 'lease' || itemType === 'sale/lease' || itemType === 'sale or lease');
-      else if (selectedType === 'Sale/Lease') {
-        typeMatch = itemType.includes('sale') && itemType.includes('lease');
-        if (!typeMatch) typeMatch = itemType === 'sale or lease' || itemType === 'sale/lease';
+      if (selectedType === 'Sale') {
+        typeMatch = item.price > 0;
+      } else if (selectedType === 'Lease') {
+        typeMatch = item.leasePrice > 0;
+      } else if (selectedType === 'Sale/Lease') {
+        typeMatch = item.price > 0 && item.leasePrice > 0;
       }
     }
 
@@ -322,7 +324,10 @@ function App() {
   }, [selectedType, selectedCategory, selectedDirect, selectedRegion, selectedProvince, selectedCity, selectedBarangay, results.length, query, allListings]);
 
   // Derived Min/Max from BASE results (for Slider limits)
-  const availablePrices = baseFilteredResults.map(i => i.price).filter(p => p > 0);
+  const availablePrices = baseFilteredResults.map(item => {
+    if (selectedType === 'Lease') return item.leasePrice;
+    return item.price;
+  }).filter(p => p > 0);
 
   // Helper function to determine step size based on value magnitude
   const getStepSize = (value: number): number => {
@@ -346,7 +351,10 @@ function App() {
 
 
   // Derived Min/Max for Price/Sqm
-  const availablePricePerSqm = baseFilteredResults.map(i => i.pricePerSqm).filter(p => p > 0);
+  const availablePricePerSqm = baseFilteredResults.map(item => {
+    if (selectedType === 'Lease') return item.leasePricePerSqm;
+    return item.pricePerSqm;
+  }).filter(p => p > 0);
   const rawMinPerSqm = availablePricePerSqm.length ? Math.min(...availablePricePerSqm) : 0;
   const rawMaxPerSqm = availablePricePerSqm.length ? Math.max(...availablePricePerSqm) : 10000;
 
@@ -396,13 +404,9 @@ function App() {
     // 1. Type Match
     let typeMatch = true;
     if (selectedType) {
-      const itemType = item.saleType?.toLowerCase() || '';
-      if (selectedType === 'Sale') typeMatch = (itemType === 'sale' || itemType === 'sale/lease' || itemType === 'sale or lease');
-      else if (selectedType === 'Lease') typeMatch = (itemType === 'lease' || itemType === 'sale/lease' || itemType === 'sale or lease');
-      else if (selectedType === 'Sale/Lease') {
-        typeMatch = itemType.includes('sale') && itemType.includes('lease');
-        if (!typeMatch) typeMatch = itemType === 'sale or lease' || itemType === 'sale/lease';
-      }
+      if (selectedType === 'Sale') typeMatch = item.price > 0;
+      else if (selectedType === 'Lease') typeMatch = item.leasePrice > 0;
+      else if (selectedType === 'Sale/Lease') typeMatch = item.price > 0 && item.leasePrice > 0;
     }
     // 2. Category Match
     let categoryMatch = true;
@@ -422,7 +426,19 @@ function App() {
     return typeMatch && categoryMatch;
   });
 
-  const availableRegions = Array.from(new Set(typeCatFiltered.map(i => (i.region || '').trim()).filter(Boolean))).sort();
+  // 1. Available Regions (Sorted by count)
+  const regionCounts = typeCatFiltered.reduce((acc, item) => {
+    const reg = (item.region || '').trim();
+    if (reg) acc[reg] = (acc[reg] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const availableRegions = Object.keys(regionCounts).sort((a, b) => {
+    const countA = regionCounts[a];
+    const countB = regionCounts[b];
+    if (countB !== countA) return countB - countA;
+    return a.localeCompare(b); // Tie-breaker: Alphabetical
+  });
 
   const availableProvinces = Array.from(new Set(typeCatFiltered
     .filter(i => !selectedRegion || (i.region || '').trim() === selectedRegion)
@@ -450,11 +466,13 @@ function App() {
   const displayedResults = baseFilteredResults.filter(item => {
     // Filter by Price Range
     if (priceRange) {
-      if (item.price < priceRange[0] || item.price > priceRange[1]) return false;
+      const priceToCompare = selectedType === 'Lease' ? item.leasePrice : item.price;
+      if (priceToCompare < priceRange[0] || priceToCompare > priceRange[1]) return false;
     }
     // Filter by Price/Sqm Range
     if (pricePerSqmRange) {
-      if (item.pricePerSqm < pricePerSqmRange[0] || item.pricePerSqm > pricePerSqmRange[1]) return false;
+      const sqmToCompare = selectedType === 'Lease' ? item.leasePricePerSqm : item.pricePerSqm;
+      if (sqmToCompare < pricePerSqmRange[0] || sqmToCompare > pricePerSqmRange[1]) return false;
     }
     // Filter by Lot Area Range
     if (lotAreaRange) {
@@ -470,9 +488,13 @@ function App() {
 
     let comparison = 0;
     if (sortConfig.key === 'price') {
-      comparison = a.price - b.price;
+      const priceA = selectedType === 'Lease' ? a.leasePrice : a.price;
+      const priceB = selectedType === 'Lease' ? b.leasePrice : b.price;
+      comparison = priceA - priceB;
     } else if (sortConfig.key === 'pricePerSqm') {
-      comparison = a.pricePerSqm - b.pricePerSqm;
+      const sqmA = selectedType === 'Lease' ? a.leasePricePerSqm : a.pricePerSqm;
+      const sqmB = selectedType === 'Lease' ? b.leasePricePerSqm : b.pricePerSqm;
+      comparison = sqmA - sqmB;
     } else if (sortConfig.key === 'lotArea') {
       comparison = a.lotArea - b.lotArea;
     } else if (sortConfig.key === 'floorArea') {
@@ -1110,6 +1132,7 @@ function App() {
                       onNotesClick={handleSendForm}
                       onMapClick={handleMapClick}
                       index={(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                      activeFilter={selectedType}
                     />
                   ))}
                 </div>

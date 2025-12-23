@@ -8,7 +8,8 @@ export type PropertyType = typeof PropertyType[keyof typeof PropertyType];
 
 export interface Listing {
     id: string; // Col T: Listing Code
-    summary: string; // Col A: Summary
+    summary: string; // Full text for copy
+    displaySummary: string; // Processed text for UI display
     price: number; // Col G: Price
     status: string; // Col O: Status
     saleType: string; // Col H: Sale/Lease
@@ -34,8 +35,10 @@ export interface Listing {
     lotArea: number; // Col E
     floorArea: number; // Col F
     type: PropertyType; // Inferred
-    lat: number; // Col AH (Index 33)
-    lng: number; // Col AH (Index 33)
+    lat: number; // Col BE
+    lng: number; // Col BE
+    leasePrice: number; // Col AU
+    leasePricePerSqm: number; // Col AV
 }
 
 export interface RawListing {

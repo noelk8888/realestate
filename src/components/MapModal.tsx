@@ -53,6 +53,13 @@ function MapController({ center }: { center: [number, number] }) {
     return null;
 }
 
+const formatPrice = (price: number) => {
+    const formatted = new Intl.NumberFormat('en-PH', {
+        maximumFractionDigits: 0
+    }).format(price);
+    return `P${formatted}`;
+};
+
 export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings }) => {
     if (!isOpen || !centerListing || !centerListing.lat || !centerListing.lng) return null;
 
@@ -99,7 +106,16 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         <Marker position={center} icon={redIcon} zIndexOffset={1000}>
                             <Popup>
                                 <div className="text-sm font-bold">{centerListing.id}</div>
-                                <div className="text-xs">{centerListing.price > 0 ? `₱${centerListing.price.toLocaleString()}` : 'Price on Request'}</div>
+                                <div className="text-xs">
+                                    {centerListing.price > 0 && <div>{`P${centerListing.price.toLocaleString()}`}</div>}
+                                    {centerListing.leasePrice > 0 && (
+                                        <div>
+                                            {formatPrice(centerListing.leasePrice)}/month
+                                            {centerListing.leasePricePerSqm > 0 && ` (${formatPrice(centerListing.leasePricePerSqm)}/sqm)`}
+                                        </div>
+                                    )}
+                                    {centerListing.price === 0 && centerListing.leasePrice === 0 && 'Price on Request'}
+                                </div>
                                 {(centerListing.building || centerListing.area || centerListing.barangay) && (
                                     <div className="text-xs text-gray-600 font-medium">
                                         {centerListing.building || centerListing.area || centerListing.barangay}
@@ -113,7 +129,28 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             <Marker key={l.id} position={[l.lat, l.lng]} icon={yellowIcon}>
                                 <Popup>
                                     <div className="text-sm font-bold">{l.id}</div>
-                                    <div className="text-xs">{l.price > 0 ? `₱${l.price.toLocaleString()}` : 'Price on Request'}</div>
+                                    <div className="flex flex-col gap-0.5 mb-1.5">
+                                        {l.price > 0 && (
+                                            <div className="font-bold text-gray-900 leading-tight">
+                                                P{l.price.toLocaleString()}
+                                                {l.pricePerSqm > 0 && (
+                                                    <span className="text-[10px] font-normal text-gray-500 ml-1">
+                                                        (P{l.pricePerSqm.toLocaleString()}/sqm)
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {l.leasePrice > 0 && (
+                                            <div className="popup-price lease-price">
+                                                {formatPrice(l.leasePrice)}/month
+                                                {l.leasePricePerSqm > 0 && (
+                                                    <span className="sqm-badge ml-1">
+                                                        ({formatPrice(l.leasePricePerSqm)}/sqm)
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                     {(l.building || l.area || l.barangay) && (
                                         <div className="text-xs text-gray-600 font-medium">
                                             {l.building || l.area || l.barangay}
