@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { X } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 import type { Listing } from '../types';
 import L from 'leaflet';
 import { calculateDistance } from '../utils/geoUtils';
+import { ListingCard } from './ListingCard';
 
 // Fix for default marker icon in Leaflet with Webpack/Vite
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -28,8 +29,8 @@ const redIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
-const yellowIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+const blueIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -61,6 +62,8 @@ const formatPrice = (price: number) => {
 };
 
 export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings }) => {
+    const [focusedListing, setFocusedListing] = useState<Listing | null>(null);
+
     if (!isOpen || !centerListing || !centerListing.lat || !centerListing.lng) return null;
 
     const center: [number, number] = [centerListing.lat, centerListing.lng];
@@ -105,7 +108,12 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         {/* Center Marker (Red) */}
                         <Marker position={center} icon={redIcon} zIndexOffset={1000}>
                             <Popup>
-                                <div className="text-sm font-bold">{centerListing.id}</div>
+                                <div
+                                    onClick={() => setFocusedListing(centerListing)}
+                                    className="text-sm font-bold cursor-pointer text-blue-600 hover:underline mb-1"
+                                >
+                                    {centerListing.id}
+                                </div>
                                 <div className="text-xs">
                                     {centerListing.price > 0 && <div>{`P${centerListing.price.toLocaleString()}`}</div>}
                                     {centerListing.leasePrice > 0 && (
@@ -124,11 +132,16 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             </Popup>
                         </Marker>
 
-                        {/* Neighbor Markers (Yellow) */}
+                        {/* Neighbor Markers (Blue) */}
                         {neighbors.map(l => (
-                            <Marker key={l.id} position={[l.lat, l.lng]} icon={yellowIcon}>
+                            <Marker key={l.id} position={[l.lat, l.lng]} icon={blueIcon}>
                                 <Popup>
-                                    <div className="text-sm font-bold">{l.id}</div>
+                                    <div
+                                        onClick={() => setFocusedListing(l)}
+                                        className="text-sm font-bold cursor-pointer text-blue-600 hover:underline mb-1"
+                                    >
+                                        {l.id}
+                                    </div>
                                     <div className="flex flex-col gap-0.5 mb-1.5">
                                         {l.price > 0 && (
                                             <div className="font-bold text-gray-900 leading-tight">
@@ -164,6 +177,33 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         ))}
                     </MapContainer>
                 </div>
+
+                {/* Detail Overlay */}
+                {focusedListing && (
+                    <div className="absolute inset-0 z-[2000] bg-gray-50 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-3 border-b border-gray-100 flex items-center gap-3 bg-white">
+                            <button
+                                onClick={() => setFocusedListing(null)}
+                                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
+                                title="Back to Map"
+                            >
+                                <ArrowLeft size={20} className="text-gray-600" />
+                            </button>
+                            <h3 className="text-base font-bold text-gray-900">
+                                {`Back to Map: Neighbors of ${centerListing.id}`}
+                            </h3>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 flex justify-center items-start">
+                            <div className="w-full max-w-sm">
+                                <ListingCard
+                                    listing={focusedListing}
+                                    isPopupView={true}
+                                    onBack={() => setFocusedListing(null)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

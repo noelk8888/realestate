@@ -11,9 +11,21 @@ interface ListingCardProps {
     onMapClick?: (listing: Listing) => void;
     index?: number;
     activeFilter?: string | null;
+    isPopupView?: boolean;
+    onBack?: () => void;
 }
 
-export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, isSelected = false, isDisabled = false, onNotesClick, onMapClick, index, activeFilter }) => {
+export const ListingCard: React.FC<ListingCardProps> = React.memo(({
+    listing,
+    isSelected = false,
+    isDisabled = false,
+    onNotesClick,
+    onMapClick,
+    index,
+    activeFilter,
+    isPopupView = false,
+    onBack
+}) => {
     const [isCopied, setIsCopied] = useState(false);
     const [isColumnKCopied, setIsColumnKCopied] = useState(false);
 
@@ -237,6 +249,29 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
             </div>
 
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                {isPopupView ? (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onBack && onBack();
+                        }}
+                        className="flex-1 text-center py-2 bg-blue-600 text-white rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-700 transition-colors uppercase tracking-wider"
+                    >
+                        BACK
+                    </button>
+                ) : (
+                    listing.mapLink && (
+                        <a
+                            href={listing.mapLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
+                        >
+                            MAP
+                        </a>
+                    )
+                )}
                 {listing.photoLink && (
                     <a
                         href={listing.photoLink}
@@ -246,17 +281,6 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({ listing, is
                         className="flex-1 text-center py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-indigo-100 transition-colors uppercase tracking-wider"
                     >
                         PHOTO
-                    </a>
-                )}
-                {listing.mapLink && (
-                    <a
-                        href={listing.mapLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
-                    >
-                        MAP
                     </a>
                 )}
                 <button

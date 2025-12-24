@@ -26,7 +26,6 @@ function App() {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -66,7 +65,7 @@ function App() {
   // Reset page when any filter/search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [query, selectedType, selectedCategory, selectedDirect, selectedRegion, selectedProvince, selectedCity, selectedBarangay, priceRange, pricePerSqmRange, lotAreaRange, floorAreaRange, sortConfig]);
+  }, [query, selectedType, selectedCategory, selectedDirect, selectedRegion, selectedProvince, selectedCity, priceRange, pricePerSqmRange, lotAreaRange, floorAreaRange, sortConfig]);
 
   // Click-outside handler for Price Popover
   const pricePopoverRef = useRef<HTMLDivElement>(null);
@@ -296,33 +295,26 @@ function App() {
       cityMatch = (item.city || '').trim() === selectedCity;
     }
 
-    let barangayMatch = true;
-    if (selectedBarangay) {
-      barangayMatch = (item.barangay || '').trim() === selectedBarangay;
-    }
-
     // 4. Direct Filter Match Logic
     let directMatch = true;
     if (selectedDirect) {
       directMatch = item.isDirect;
     }
 
-    return typeMatch && categoryMatch && regionMatch && provinceMatch && cityMatch && barangayMatch && directMatch;
+    return typeMatch && categoryMatch && regionMatch && provinceMatch && cityMatch && directMatch;
   });
 
   // Effect: Reset child area filters when parent changes
-  useEffect(() => { setSelectedProvince(null); setSelectedCity(null); setSelectedBarangay(null); }, [selectedRegion]);
-  useEffect(() => { setSelectedCity(null); setSelectedBarangay(null); }, [selectedProvince]);
-  useEffect(() => { setSelectedBarangay(null); }, [selectedCity]);
+  useEffect(() => { setSelectedProvince(null); setSelectedCity(null); }, [selectedRegion]);
+  useEffect(() => { setSelectedCity(null); }, [selectedProvince]);
 
-  // Effect: Update results when filters change or initially if needed
   useEffect(() => {
     // If a filter is selected but no results yet (and no query), we should populate results with allListings
     // so filtering can happen on the full set.
-    if ((selectedType || selectedCategory || selectedDirect || selectedRegion || selectedProvince || selectedCity || selectedBarangay) && results.length === 0 && !query) {
+    if ((selectedType || selectedCategory || selectedDirect || selectedRegion || selectedProvince || selectedCity) && results.length === 0 && !query) {
       setResults(allListings);
     }
-  }, [selectedType, selectedCategory, selectedDirect, selectedRegion, selectedProvince, selectedCity, selectedBarangay, results.length, query, allListings]);
+  }, [selectedType, selectedCategory, selectedDirect, selectedRegion, selectedProvince, selectedCity, results.length, query, allListings]);
 
   // Derived Min/Max from BASE results (for Slider limits)
   const availablePrices = baseFilteredResults.map(item => {
@@ -455,13 +447,7 @@ function App() {
     .filter(Boolean)
   )).sort();
 
-  const availableBarangays = Array.from(new Set(typeCatFiltered
-    .filter(i => !selectedRegion || (i.region || '').trim() === selectedRegion)
-    .filter(i => !selectedProvince || (i.province || '').trim() === selectedProvince)
-    .filter(i => !selectedCity || (i.city || '').trim() === selectedCity)
-    .map(i => (i.barangay || '').trim())
-    .filter(Boolean)
-  )).sort();
+
 
 
   // Final Results (Apply Price and Price/Sqm Range)
@@ -648,30 +634,41 @@ function App() {
 
             {/* Group 2: Category */}
             <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
-              {['Residential', 'Commercial', 'Industrial', 'Agricultural'].map((filter) => {
-                const isActive = selectedCategory === filter;
-                let label = filter.toUpperCase();
-                if (filter === 'Residential') label = "RES'L";
-                if (filter === 'Commercial') label = "COMM'L";
-                if (filter === 'Industrial') label = "IND'L";
-                if (filter === 'Agricultural') label = 'AGRI';
+              {(() => {
+                const categoryPresence = {
+                  'Residential': allListings.some(item => (item.category || '').toUpperCase().includes('RESIDENTIAL')),
+                  'Commercial': allListings.some(item => (item.category || '').toUpperCase().includes('COMMERCIAL')),
+                  'Industrial': allListings.some(item => (item.category || '').toUpperCase().includes('INDUSTRIAL')),
+                  'Agricultural': allListings.some(item => (item.category || '').toUpperCase().includes('AGRICULTURAL'))
+                };
 
-                return (
-                  <button
-                    key={filter}
-                    title={filter.toUpperCase()}
-                    onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
-                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
-                          ${isActive
-                        ? 'bg-blue-600 text-white shadow-sm z-10'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
-                      }
-                    `}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
+                return (['Residential', 'Commercial', 'Industrial', 'Agricultural'] as const)
+                  .filter(filter => categoryPresence[filter])
+                  .map((filter) => {
+                    const isActive = selectedCategory === filter;
+                    let label = filter.toUpperCase();
+                    if (filter === 'Residential') label = "RES'L";
+                    if (filter === 'Commercial') label = "COMM'L";
+                    if (filter === 'Industrial') label = "IND'L";
+                    if (filter === 'Agricultural') label = 'AGRI';
+
+                    return (
+                      <button
+                        key={filter}
+                        title={filter}
+                        onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
+                        className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
+                              ${isActive
+                            ? 'bg-blue-600 text-white shadow-sm z-10'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                          }
+                        `}
+                      >
+                        {label}
+                      </button>
+                    )
+                  });
+              })()}
             </div>
 
           </div>
@@ -711,7 +708,7 @@ function App() {
                       `}
                   />
                   {/* RESET Button inside Search Bar */}
-                  {(hasSearched || selectedType || selectedCategory || selectedRegion || selectedProvince || selectedCity || selectedBarangay) && (
+                  {(hasSearched || selectedType || selectedCategory || selectedRegion || selectedProvince || selectedCity) && (
                     <div className="absolute inset-y-0 right-4 flex items-center">
                       <button
                         type="button"
@@ -722,11 +719,17 @@ function App() {
                           setResults([]);
                           setSelectedType(null);
                           setSelectedCategory(null);
+                          setSelectedDirect(false);
                           setSelectedRegion(null);
                           setSelectedProvince(null);
                           setSelectedCity(null);
-                          setSelectedBarangay(null);
-                          window.location.href = window.location.pathname;
+                          setPriceRange(null);
+                          setPricePerSqmRange(null);
+                          setLotAreaRange(null);
+                          setFloorAreaRange(null);
+                          setSortConfig(null);
+                          setRelevanceScore(50);
+                          window.history.replaceState({}, '', window.location.pathname);
                         }}
                         className="text-sm font-bold text-red-500 hover:text-red-700 underline tracking-wide bg-white pl-2"
                       >
@@ -749,12 +752,12 @@ function App() {
                   <input
                     type="range"
                     min="0"
-                    max="4"
+                    max="2"
                     step="1"
-                    value={(100 - relevanceScore) / 25}
+                    value={relevanceScore === 100 ? 0 : relevanceScore === 50 ? 1 : 2}
                     onChange={(e) => {
-                      const index = parseInt(e.target.value);
-                      const newScore = 100 - (index * 25);
+                      const val = parseInt(e.target.value);
+                      const newScore = val === 0 ? 100 : val === 1 ? 50 : 0;
                       setRelevanceScore(newScore);
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
@@ -1077,7 +1080,6 @@ function App() {
                   { label: 'Region', value: selectedRegion, setValue: setSelectedRegion, options: availableRegions },
                   { label: 'Province', value: selectedProvince, setValue: setSelectedProvince, options: availableProvinces },
                   { label: 'City', value: selectedCity, setValue: setSelectedCity, options: availableCities },
-                  { label: 'Barangay', value: selectedBarangay, setValue: setSelectedBarangay, options: availableBarangays },
                 ].map(({ label, value, setValue, options }) => {
                   const selectId = `filter-${label.toLowerCase()}`;
                   return (
@@ -1177,7 +1179,7 @@ function App() {
       />
 
       {/* Footer */}
-      <footer className="w-full py-8 mt-12 bg-white border-t border-gray-100 flex flex-col sm:flex-row justify-center items-center gap-6">
+      <footer className="w-full py-8 mt-12 bg-white border-t border-gray-100 flex flex-col items-center gap-6">
         <div className="flex items-center gap-6">
           <a href="https://www.facebook.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition-colors">
             <Facebook className="w-6 h-6" />
@@ -1206,20 +1208,22 @@ function App() {
             <Youtube className="w-6 h-6" />
           </a>
         </div>
-        <div className="h-px w-12 bg-gray-200 sm:hidden"></div>
-        <span className="font-bold text-gray-700 text-lg">KiuRealtyPH</span>
-        <a href="https://www.messenger.com/t/kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition-colors">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="w-6 h-6"
-          >
-            <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.43 5.39 3.75 7.03v3.74c0 .8.88 1.28 1.59.87l2.48-1.24c.71.13 1.45.2 2.18.2 5.52 0 10-4.03 10-9S17.52 2 12 2zm1 14.24-2.5-2.73-4.86 2.73 5.35-5.68 2.5 2.73 4.86-2.73-5.35 5.68z" />
-          </svg>
-        </a>
+
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-gray-700 text-lg">KiuRealtyPH</span>
+          <a href="https://www.messenger.com/t/kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition-colors">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-6 h-6"
+            >
+              <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.43 5.39 3.75 7.03v3.74c0 .8.88 1.28 1.59.87l2.48-1.24c.71.13 1.45.2 2.18.2 5.52 0 10-4.03 10-9S17.52 2 12 2zm1 14.24-2.5-2.73-4.86 2.73 5.35-5.68 2.5 2.73 4.86-2.73-5.35 5.68z" />
+            </svg>
+          </a>
+        </div>
       </footer>
     </div >
   );
