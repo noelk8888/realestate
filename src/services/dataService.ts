@@ -44,7 +44,7 @@ const normalizeListing = (row: string[]): Listing => {
 
     // Column Indices (0-based) from Sheet4:
     // A=0, Z=25, AB=27, AC=28, AD=29, AE=30, AF=31, AG=32, AH=33, AI=34, AJ=35
-    // AK=36, AL=37, AM=38, AN=39, AP=41, AQ=42, AR=43, AS=44, AT=45, AU=46, AV=47, AW=48, BE=56
+    // AK=36, AL=37, AM=38, AN=39, AO=40, AP=41, AQ=42, AR=43, AS=44, AT=45, AU=46, AV=47, AW=48, AY=50, BE=56
 
     const price = parseNumber(row[44]); // Col AS
     const leasePrice = parseNumber(row[46]); // Col AU
@@ -73,8 +73,8 @@ const normalizeListing = (row: string[]): Listing => {
     const fullSummary = rawSummary;
     const displaySummary = summaryLines.length > 1 ? summaryLines.slice(1).join('\n') : rawSummary;
 
-    const lotArea = parseNumber(row[41]); // Col AP
-    const floorArea = parseNumber(row[42]); // Col AQ
+    const lotArea = parseNumber(row[40]); // Col AO
+    const floorArea = parseNumber(row[41]); // Col AP
 
     // Type Inference Logic
     let type: PropertyType = PropertyType.Unknown;
@@ -130,7 +130,7 @@ const normalizeListing = (row: string[]): Listing => {
         photoLink: row[27] || '', // Col AB
         mapLink: row[29] || '', // Col AD
         columnV: row[48] || '', // Col AW (Comments)
-        isDirect: (row[40]?.toUpperCase().includes('DIRECT')) || (rawSummary.toUpperCase().includes('DIRECT')), // Col AO or Summary fallback
+        isDirect: (row[50]?.toUpperCase().includes('DIRECT')) || (rawSummary.toUpperCase().includes('DIRECT')), // Col AY or Summary fallback
 
         lat,
         lng,
