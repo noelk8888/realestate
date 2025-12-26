@@ -79,21 +79,21 @@ const normalizeListing = (row: string[]): Listing => {
     }, [] as number[]);
 
     let displaySummary = '';
-    if (nonEmptyIndices.length > 2) {
-        // Exclude first and last non-empty lines
+    if (nonEmptyIndices.length >= 2) {
+        // Always skip the first non-empty line (Listing ID)
         const firstIdx = nonEmptyIndices[0];
         const lastIdx = nonEmptyIndices[nonEmptyIndices.length - 1];
-        displaySummary = allLines.slice(firstIdx + 1, lastIdx).join('\n').trim();
-    } else if (nonEmptyIndices.length === 2) {
-        // Just title and one more line (likely photo/contact), show nothing
-        displaySummary = '';
-    } else {
-        displaySummary = '';
-    }
 
-    if (row[28] === 'G00050') {
-        console.log('G00050 All Lines:', allLines);
-        console.log('G00050 Display Summary:', displaySummary);
+        if (nonEmptyIndices.length === 2) {
+            // Case [ID, Description] -> Show Description
+            displaySummary = allLines[nonEmptyIndices[1]];
+        } else {
+            // Case [ID, Description..., PhotoLink/Other] -> Show middle part
+            displaySummary = allLines.slice(firstIdx + 1, lastIdx).join('\n').trim();
+        }
+    } else {
+        // Less than 2 lines, nothing to show after skipping ID
+        displaySummary = '';
     }
 
     const lotArea = parseNumber(row[40]); // Col AO
