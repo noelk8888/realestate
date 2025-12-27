@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { X, ArrowLeft } from 'lucide-react';
 import type { Listing } from '../types';
-import L from 'leaflet';
 import { calculateDistance } from '../utils/geoUtils';
 import { ListingCard } from './ListingCard';
 
@@ -38,11 +41,25 @@ const blueIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+const grayIcon = L.divIcon({
+    className: 'custom-gray-pin',
+    html: `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="25" height="41" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
+            <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12zm0 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z" fill="#9ca3af" stroke="#000000" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="4" fill="white"/>
+        </svg>
+    `,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
+});
+
 interface MapModalProps {
     isOpen: boolean;
     onClose: () => void;
     centerListing: Listing | null;
     allListings: Listing[];
+    filteredListingsIds: Set<string>;
 }
 
 // Component to update map center when prop changes
@@ -61,8 +78,9 @@ const formatPrice = (price: number) => {
     return `P${formatted}`;
 };
 
-export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings }) => {
+export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings, filteredListingsIds }) => {
     const [focusedListing, setFocusedListing] = useState<Listing | null>(null);
+    const [groupedViewListings, setGroupedViewListings] = useState<Listing[] | null>(null);
 
     if (!isOpen || !centerListing || !centerListing.lat || !centerListing.lng) return null;
 
@@ -74,6 +92,73 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
         const dist = calculateDistance(centerListing.lat, centerListing.lng, l.lat, l.lng);
         return dist <= 2;
     });
+
+    // Group all relevant listings by coordinates
+    const allRelevant = [centerListing, ...neighbors];
+    const groupedListings: Record<string, Listing[]> = {};
+    allRelevant.forEach(l => {
+        if (l.lat && l.lng) {
+            const key = `${l.lat},${l.lng}`;
+            if (!groupedListings[key]) groupedListings[key] = [];
+            groupedListings[key].push(l);
+        }
+    });
+
+    // Helper to get group icon
+    const getGroupIcon = (listings: Listing[], isCenterGroup: boolean) => {
+        const count = listings.length;
+        // Priority 1: Red if group includes the Center (Focused) Listing
+        const hasCenter = listings.some(l => l.id === centerListing.id);
+
+        // Priority 2: Blue if any listing is in the Filtered Results AND it's not the center group
+        // But the constraint says: "if any of the group includes a match, then the circle heat map must be color BLUE"
+        // And "if the group includes the CHOSEN listing, then it must be color RED" (Higher priority)
+
+        const hasFilteredMatch = listings.some(l => filteredListingsIds.has(l.id));
+
+        let color = '#9ca3af'; // Default Gray
+        if (hasCenter) {
+            color = '#ef4444'; // Red
+        } else if (hasFilteredMatch) {
+            color = '#3b82f6'; // Blue
+        }
+
+        if (count === 1) {
+            if (hasCenter) return redIcon;
+            if (hasFilteredMatch) return blueIcon;
+            return grayIcon;
+        }
+
+        return L.divIcon({
+            className: 'custom-grouped-pin',
+            html: `
+                <div style="position: relative; width: 30px; height: 41px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="30" height="41" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">
+                        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12zm0 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6-2.7 6-6 6z" fill="${color}" stroke="#000000" stroke-width="1"/>
+                        <circle cx="12" cy="12" r="4" fill="white"/>
+                    </svg>
+                    <div style="
+                        position: absolute;
+                        top: -5px;
+                        right: -5px;
+                        background: #1f2937;
+                        color: white;
+                        border-radius: 999px;
+                        padding: 2px 6px;
+                        font-size: 10px;
+                        font-weight: bold;
+                        border: 2px solid white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        min-width: 18px;
+                        text-align: center;
+                    ">${count}</div>
+                </div>
+            `,
+            iconSize: [30, 41],
+            iconAnchor: [15, 41],
+            popupAnchor: [0, -34]
+        });
+    };
 
     return (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -105,105 +190,160 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         />
                         <MapController center={center} />
 
-                        {/* Center Marker (Red) */}
-                        <Marker position={center} icon={redIcon} zIndexOffset={1000}>
-                            <Popup>
-                                <div
-                                    onClick={() => setFocusedListing(centerListing)}
-                                    className="text-sm font-bold cursor-pointer text-blue-600 hover:underline mb-1"
-                                >
-                                    {centerListing.id}
-                                </div>
-                                <div className="text-xs">
-                                    {centerListing.price > 0 && (
-                                        <div className="font-bold text-gray-900">
-                                            {`P${centerListing.price.toLocaleString()}`}
-                                            {centerListing.pricePerSqm > 0 && (
-                                                <span className="text-[10px] font-normal text-gray-500 ml-1">
-                                                    (P{centerListing.pricePerSqm.toLocaleString()}/sqm)
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                    {centerListing.leasePrice > 0 && (
-                                        <div className="text-gray-800">
-                                            {formatPrice(centerListing.leasePrice)}/month
-                                            {centerListing.leasePricePerSqm > 0 && (
-                                                <span className="text-[10px] font-normal text-gray-500 ml-1">
-                                                    ({formatPrice(centerListing.leasePricePerSqm)}/sqm)
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                    {centerListing.price === 0 && centerListing.leasePrice === 0 && 'Price on Request'}
-                                </div>
-                                {(centerListing.building || centerListing.area || centerListing.barangay) && (
-                                    <div className="text-xs text-gray-600 font-medium">
-                                        {centerListing.building || centerListing.area || centerListing.barangay}
-                                    </div>
-                                )}
-                            </Popup>
-                        </Marker>
+                        <MarkerClusterGroup
+                            chunkedLoading
+                            spiderfyOnMaxZoom={true}
+                            showCoverageOnHover={false}
+                        >
+                            {Object.entries(groupedListings).map(([coordKey, listings]) => {
+                                const isCenterGroup = listings.some(l => l.id === centerListing.id);
+                                const [lat, lng] = coordKey.split(',').map(Number);
 
-                        {/* Neighbor Markers (Blue) */}
-                        {neighbors.map(l => (
-                            <Marker key={l.id} position={[l.lat, l.lng]} icon={blueIcon}>
-                                <Popup>
-                                    <div
-                                        onClick={() => setFocusedListing(l)}
-                                        className="text-sm font-bold cursor-pointer text-blue-600 hover:underline mb-1"
+                                return (
+                                    <Marker
+                                        key={coordKey}
+                                        position={[lat, lng]}
+                                        icon={getGroupIcon(listings, isCenterGroup)}
+                                        zIndexOffset={isCenterGroup ? 1000 : 0}
+                                        eventHandlers={{
+                                            click: (e) => {
+                                                if (listings.length > 1) {
+                                                    // Prevent default popup and show grid view
+                                                    L.DomEvent.stopPropagation(e);
+                                                    setGroupedViewListings(listings);
+                                                }
+                                            }
+                                        }}
                                     >
-                                        {l.id}
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 mb-1.5">
-                                        {l.price > 0 && (
-                                            <div className="font-bold text-gray-900 leading-tight">
-                                                P{l.price.toLocaleString()}
-                                                {l.pricePerSqm > 0 && (
-                                                    <span className="text-[10px] font-normal text-gray-500 ml-1">
-                                                        (P{l.pricePerSqm.toLocaleString()}/sqm)
-                                                    </span>
-                                                )}
-                                            </div>
+                                        {listings.length === 1 && (
+                                            <Popup minWidth={220} maxWidth={300}>
+                                                <div className="flex flex-col gap-3 px-1 py-1">
+                                                    {listings.map((l) => (
+                                                        <div key={l.id}>
+                                                            <div
+                                                                onClick={() => setFocusedListing(l)}
+                                                                className="text-sm font-bold cursor-pointer text-blue-600 hover:underline mb-1 flex items-center justify-between"
+                                                            >
+                                                                <span>{l.id}</span>
+                                                            </div>
+                                                            <div className="text-xs">
+                                                                {l.price > 0 && (
+                                                                    <div className="font-bold text-gray-900">
+                                                                        {`P${l.price.toLocaleString()}`}
+                                                                        {l.pricePerSqm > 0 && (
+                                                                            <span className="text-[10px] font-normal text-gray-500 ml-1">
+                                                                                (P{l.pricePerSqm.toLocaleString()}/sqm)
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {l.leasePrice > 0 && (
+                                                                    <div className="text-gray-800">
+                                                                        {formatPrice(l.leasePrice)}/month
+                                                                    </div>
+                                                                )}
+                                                                {l.price === 0 && l.leasePrice === 0 && 'Price on Request'}
+                                                            </div>
+                                                            {(l.building || l.area || l.barangay) && (
+                                                                <div className="text-[11px] text-gray-600 font-medium">
+                                                                    {l.building || l.area || l.barangay}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </Popup>
                                         )}
-                                        {l.leasePrice > 0 && (
-                                            <div className="popup-price lease-price">
-                                                {formatPrice(l.leasePrice)}/month
-                                                {l.leasePricePerSqm > 0 && (
-                                                    <span className="sqm-badge ml-1">
-                                                        ({formatPrice(l.leasePricePerSqm)}/sqm)
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {(l.building || l.area || l.barangay) && (
-                                        <div className="text-xs text-gray-600 font-medium">
-                                            {l.building || l.area || l.barangay}
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        {calculateDistance(centerListing.lat, centerListing.lng, l.lat, l.lng).toFixed(2)} km away
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        ))}
+                                    </Marker>
+                                );
+                            })}
+                        </MarkerClusterGroup>
                     </MapContainer>
+
+                    {/* Legend Tablets */}
+                    <div className="absolute bottom-4 left-4 z-[1000] flex flex-col gap-2 pointer-events-none">
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-2xl border border-gray-200">
+                            <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
+                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Current Listing</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-2xl border border-gray-200">
+                            <div className="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
+                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Similar Listing Nearby</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-2xl border border-gray-200">
+                            <div className="w-3 h-3 rounded-full bg-[#9ca3af] border border-black/20"></div>
+                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Nearby Listings</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Detail Overlay */}
+                {/* Grid Overlay for Grouped Listings */}
+                {groupedViewListings && (
+                    <div className="absolute inset-0 z-[2500] bg-gray-50 flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-300">
+                        <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm sticky top-0">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setGroupedViewListings(null)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
+                                    title="Back to Map"
+                                >
+                                    <ArrowLeft size={20} className="text-gray-600" />
+                                </button>
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-900 leading-none">
+                                        {groupedViewListings.length} Listings Found
+                                    </h3>
+                                    <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-wider">
+                                        {groupedViewListings[0].building || groupedViewListings[0].area || groupedViewListings[0].barangay || 'Selected Location'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setGroupedViewListings(null)}
+                                className="px-3 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-lg hover:bg-blue-700 transition-colors uppercase tracking-widest"
+                            >
+                                BACK TO MAP
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100/50">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto">
+                                {groupedViewListings.map((listing, idx) => {
+                                    // Determine variant for each card within the grid
+                                    const isCenter = listing.id === centerListing.id;
+                                    const isMatch = filteredListingsIds.has(listing.id);
+                                    let variant: 'red' | 'blue' | 'gray' = 'gray';
+                                    if (isCenter) variant = 'red';
+                                    else if (isMatch) variant = 'blue';
+
+                                    return (
+                                        <div key={`${listing.id}-${idx}`} className="h-full">
+                                            <ListingCard
+                                                listing={listing}
+                                                isPopupView={true}
+                                                onBack={() => setGroupedViewListings(null)}
+                                                backButtonVariant={variant}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Single Detail Overlay */}
                 {focusedListing && (
-                    <div className="absolute inset-0 z-[2000] bg-gray-50 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="absolute inset-0 z-[3000] bg-gray-50 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="p-3 border-b border-gray-100 flex items-center gap-3 bg-white">
                             <button
                                 onClick={() => setFocusedListing(null)}
                                 className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
-                                title="Back to Map"
+                                title="Back"
                             >
                                 <ArrowLeft size={20} className="text-gray-600" />
                             </button>
                             <h3 className="text-base font-bold text-gray-900">
-                                {`Back to Map: Neighbors of ${centerListing.id}`}
+                                {`Back to ${groupedViewListings ? 'Group' : 'Map'}`}
                             </h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 flex justify-center items-start">
@@ -212,6 +352,9 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                     listing={focusedListing}
                                     isPopupView={true}
                                     onBack={() => setFocusedListing(null)}
+                                    // Single focused view - usually coming from popup click so variant isn't driven by group logic here
+                                    // But we can default to blue or match the listing status
+                                    backButtonVariant={focusedListing.id === centerListing.id ? 'red' : (filteredListingsIds.has(focusedListing.id) ? 'blue' : 'gray')}
                                 />
                             </div>
                         </div>

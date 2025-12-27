@@ -39,6 +39,8 @@ export interface Listing {
     lng: number; // Col BE
     leasePrice: number; // Col AU
     leasePricePerSqm: number; // Col AV
+    columnBC: string; // Col BC
+    columnBD: string; // Col BD
 }
 
 export interface RawListing {

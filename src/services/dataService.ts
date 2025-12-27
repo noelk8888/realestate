@@ -161,6 +161,8 @@ const normalizeListing = (row: string[]): Listing => {
         floorArea,
         type,
         leasePrice: leasePrice,
-        leasePricePerSqm: parseNumber(row[47]) // Col AV
+        leasePricePerSqm: parseNumber(row[47]), // Col AV
+        columnBC: row[54] || '', // Col BC
+        columnBD: row[55] || '' // Col BD
     };
 };

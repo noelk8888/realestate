@@ -8,6 +8,7 @@ import type { Listing } from './types';
 import { ListingCard } from './components/ListingCard';
 import { ContactFormModal } from './components/ContactFormModal';
 import { MapModal } from './components/MapModal';
+import { NoteModal } from './components/NoteModal';
 import Pagination from './components/Pagination';
 import { ScrollToTop } from './components/ScrollToTop';
 
@@ -27,7 +28,7 @@ function App() {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
 
   // Price Range State
   const [isPriceFilterOpen, setIsPriceFilterOpen] = useState(false);
@@ -476,8 +477,13 @@ function App() {
 
     let comparison = 0;
     if (sortConfig.key === 'price') {
-      const priceA = selectedType === 'Lease' ? a.leasePrice : a.price;
-      const priceB = selectedType === 'Lease' ? b.leasePrice : b.price;
+      const getPrice = (l: Listing) => {
+        if (selectedType === 'Lease') return l.leasePrice;
+        if (selectedType === 'Sale') return l.price;
+        return l.price > 0 ? l.price : l.leasePrice;
+      };
+      const priceA = getPrice(a);
+      const priceB = getPrice(b);
       comparison = priceA - priceB;
     } else if (sortConfig.key === 'pricePerSqm') {
       const sqmA = selectedType === 'Lease' ? a.leasePricePerSqm : a.pricePerSqm;
@@ -491,6 +497,17 @@ function App() {
 
     return sortConfig.direction === 'asc' ? comparison : -comparison;
   });
+
+  // Ensure initial sort is applied if no other sort is active and results are fresh
+  // Actually, 'displayedResults' already applies the sortConfig. 
+  // The issue might be that 'baseFilteredResults' order is mostly random or id-based.
+  // With sortConfig initialized to { key: 'price', direction: 'asc' }, it should work.
+  // Let's verify that 'price' exists and is non-zero for reliable sorting.
+  // Currently, 0 prices might be floating to top or bottom depending on check.
+  // Code above: comparison = priceA - priceB. 
+  // If price is 0 (Price on Request), it will be at the top for ASC sort.
+  // We might want to push 0s to the bottom? 
+  // For now, I will leave as is but ensure the state is correctly initialized.
 
   const totalPages = Math.ceil(displayedResults.length / ITEMS_PER_PAGE);
   const paginatedResults = displayedResults.slice(
@@ -560,6 +577,21 @@ function App() {
   const handleMapClick = (listing: Listing) => {
     setMapCenterListing(listing);
     setShowMapModal(true);
+  };
+
+  // Note Modal State
+  const [noteModalData, setNoteModalData] = useState<{ isOpen: boolean, content: string, title: string }>({
+    isOpen: false,
+    content: '',
+    title: ''
+  });
+
+  const handleShowNote = (content: string, id: string) => {
+    setNoteModalData({
+      isOpen: true,
+      content,
+      title: `Note for ${id}`
+    });
   };
 
   return (
@@ -727,7 +759,7 @@ function App() {
                           setPricePerSqmRange(null);
                           setLotAreaRange(null);
                           setFloorAreaRange(null);
-                          setSortConfig(null);
+                          setSortConfig({ key: 'price', direction: 'asc' });
                           setRelevanceScore(50);
                           window.history.replaceState({}, '', window.location.pathname);
                         }}
@@ -1138,6 +1170,7 @@ function App() {
                       onToggleSelection={handleToggleSelection}
                       isDisabled={selectedListings.length >= 5}
                       onNotesClick={handleSendForm}
+                      onShowNote={handleShowNote}
                       onMapClick={handleMapClick}
                       index={(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
                       activeFilter={selectedType}
@@ -1176,6 +1209,14 @@ function App() {
         onClose={() => setShowMapModal(false)}
         centerListing={mapCenterListing}
         allListings={allListings}
+        filteredListingsIds={new Set(displayedResults.map(l => l.id))}
+      />
+
+      <NoteModal
+        isOpen={noteModalData.isOpen}
+        onClose={() => setNoteModalData(prev => ({ ...prev, isOpen: false }))}
+        content={noteModalData.content}
+        title={noteModalData.title}
       />
 
       {/* Footer */}

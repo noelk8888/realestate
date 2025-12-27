@@ -9,10 +9,12 @@ interface ListingCardProps {
     isDisabled?: boolean;
     onNotesClick?: (id: string) => void;
     onMapClick?: (listing: Listing) => void;
+    onShowNote?: (note: string, id: string) => void;
     index?: number;
     activeFilter?: string | null;
     isPopupView?: boolean;
     onBack?: () => void;
+    backButtonVariant?: 'red' | 'blue' | 'gray';
 }
 
 export const ListingCard: React.FC<ListingCardProps> = React.memo(({
@@ -21,10 +23,12 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
     isDisabled = false,
     onNotesClick,
     onMapClick,
+    onShowNote,
     index,
     activeFilter,
     isPopupView = false,
-    onBack
+    onBack,
+    backButtonVariant = 'blue'
 }) => {
     const [isCopied, setIsCopied] = useState(false);
     const [isColumnKCopied, setIsColumnKCopied] = useState(false);
@@ -248,6 +252,13 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                 </div>
             </div>
 
+            {(listing.columnBC || listing.columnBD) && (
+                <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1 text-xs text-gray-400">
+                    {listing.columnBC && <div>{listing.columnBC}</div>}
+                    {listing.columnBD && <div>{listing.columnBD}</div>}
+                </div>
+            )}
+
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                 {isPopupView ? (
                     <button
@@ -255,22 +266,25 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                             e.stopPropagation();
                             onBack && onBack();
                         }}
-                        className="flex-1 text-center py-2 bg-blue-600 text-white rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-700 transition-colors uppercase tracking-wider"
+                        className={`
+                            flex-1 text-center py-2 text-white rounded-lg text-[10px] sm:text-xs font-bold transition-colors uppercase tracking-wider
+                            ${backButtonVariant === 'red' ? 'bg-red-600 hover:bg-red-700' : ''}
+                            ${backButtonVariant === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                            ${backButtonVariant === 'gray' ? 'bg-gray-400 hover:bg-gray-500' : ''}
+                        `}
                     >
                         BACK
                     </button>
                 ) : (
-                    listing.mapLink && (
-                        <a
-                            href={listing.mapLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
-                        >
-                            MAP
-                        </a>
-                    )
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onMapClick) onMapClick(listing);
+                        }}
+                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
+                    >
+                        MAP
+                    </button>
                 )}
                 {listing.photoLink && (
                     <a
@@ -297,14 +311,20 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        onNotesClick && onNotesClick(listing.id);
+                        if (listing.columnV) {
+                            onShowNote && onShowNote(listing.columnV, listing.id);
+                        } else {
+                            onNotesClick && onNotesClick(listing.id);
+                        }
                     }}
-                    className="flex-1 text-center py-2 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors uppercase tracking-wider"
+                    className={`flex-1 text-center py-2 bg-yellow-50 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors uppercase tracking-wider
+                        ${listing.columnV ? 'text-yellow-700' : 'text-blue-600'}
+                    `}
                 >
                     NOTES
                 </button>
             </div>
 
-        </div>
+        </div >
     );
 });

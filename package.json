@@ -14,12 +14,15 @@
     "@types/papaparse": "^5.5.1",
     "@types/react-google-recaptcha": "^2.1.9",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.556.0",
+    "overlapping-marker-spiderfier-leaflet": "^0.2.7",
     "papaparse": "^5.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-google-recaptcha": "^3.1.0",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "react-leaflet-cluster": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
