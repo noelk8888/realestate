@@ -155,7 +155,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         </span>
                         {/* Column BC: Reverted to Below Listing ID (Gray) */}
                         {listing.columnBC && !isPopupView && (
-                            <div className="mt-1 text-xs font-bold text-gray-900 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200 shadow-sm text-right">
+                            <div className="mt-1 text-xs font-bold text-gray-400 text-right">
                                 {listing.columnBC}
                             </div>
                         )}
@@ -166,7 +166,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
             {/* Removed combined BC/BD block from bottom - moved to specific locations */}
 
             <div className="mb-4 mt-0.5">
-                <div className="text-xl font-bold text-gray-900 flex flex-col gap-0.5">
+                <div className="w-full bg-gray-100 p-2 rounded-lg shadow-inner flex flex-col items-center justify-center gap-0.5 text-center">
                     {/* Column BD: Top of Price, Light Green Theme */}
                     {listing.columnBD && (
                         <div
@@ -186,7 +186,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                     {activeFilter === 'Lease' ? (
                         <>
                             {listing.leasePrice > 0 && (
-                                <div className="flex items-baseline gap-1 text-gray-800">
+                                <div className="flex items-baseline gap-1 text-gray-900 justify-center">
                                     <span className="text-xl font-bold">{formatPrice(listing.leasePrice)}/month</span>
                                     {listing.leasePricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
@@ -196,7 +196,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                                 </div>
                             )}
                             {listing.price > 0 && (
-                                <div className="flex items-baseline gap-2">
+                                <div className="flex items-baseline gap-2 justify-center">
                                     <span className="text-xl font-bold text-gray-900">{formatPrice(listing.price)}</span>
                                     {listing.pricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
@@ -209,7 +209,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                     ) : (
                         <>
                             {listing.price > 0 && (
-                                <div className="flex items-baseline gap-2">
+                                <div className="flex items-baseline gap-2 justify-center">
                                     <span className="text-xl font-bold text-gray-900">{formatPrice(listing.price)}</span>
                                     {listing.pricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
@@ -219,7 +219,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                                 </div>
                             )}
                             {listing.leasePrice > 0 && (
-                                <div className="flex items-baseline gap-1 text-gray-800">
+                                <div className="flex items-baseline gap-1 text-gray-900 justify-center">
                                     <span className="text-xl font-bold">{formatPrice(listing.leasePrice)}/month</span>
                                     {listing.leasePricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
@@ -350,11 +350,8 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (listing.columnV) {
-                            onShowNote && onShowNote(listing.columnV, listing.id);
-                        } else {
-                            onNotesClick && onNotesClick(listing.id);
-                        }
+                        // Always open contact form directly
+                        onNotesClick && onNotesClick(listing.id);
                     }}
                     className={`flex-1 text-center py-2 bg-yellow-50 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors uppercase tracking-wider
                         ${listing.columnV ? 'text-yellow-700' : 'text-blue-600'}
