@@ -606,8 +606,8 @@ function App() {
 
           <p className={`font-bold text-gray-900 tracking-tight transition-all duration-500 ${(hasSearched || selectedType || selectedCategory) ? 'text-2xl mb-4' : 'text-4xl sm:text-5xl mb-8'}`}>
             {(selectedType || selectedCategory || hasSearched)
-              ? `Found ${displayedResults.length} of ${allListings.length} Listings`
-              : allListings.length > 0 ? `${allListings.length} Listings` : 'Loading properties...'
+              ? `Found ${displayedResults.length} of ${allListings.length} Available Listings`
+              : allListings.length > 0 ? `${allListings.length} Available Listings` : 'Loading properties...'
             }
           </p>
 
