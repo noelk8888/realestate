@@ -792,28 +792,27 @@ function App() {
               {/* Controls Stack: Relevance & Sort Buttons */}
               <div className="flex flex-col items-start gap-0">
 
-                {/* Relevance Slider (Full Width) */}
+                {/* Relevance Slider (EXACT - BROAD) */}
                 <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full border border-gray-100 shadow-sm w-full animate-fade-in-up">
                   <div className="flex items-center leading-none select-none">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">Exact Match</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">EXACT</span>
                   </div>
 
                   <input
                     type="range"
                     min="0"
-                    max="2"
+                    max="1"
                     step="1"
-                    value={relevanceScore === 100 ? 0 : relevanceScore === 50 ? 1 : 2}
+                    value={relevanceScore === 100 ? 0 : 1}
                     onChange={(e) => {
                       const val = parseInt(e.target.value);
-                      const newScore = val === 0 ? 100 : val === 1 ? 50 : 0;
-                      setRelevanceScore(newScore);
+                      setRelevanceScore(val === 0 ? 100 : 0);
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
                   />
 
                   <div className="flex items-center leading-none select-none">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">Broad Match</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">BROAD</span>
                   </div>
                 </div>
 

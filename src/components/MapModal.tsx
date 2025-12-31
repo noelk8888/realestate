@@ -89,15 +89,38 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
     const [focusedListing, setFocusedListing] = useState<Listing | null>(null);
     const [groupedViewListings, setGroupedViewListings] = useState<Listing[] | null>(null);
 
+    // Toggle states for map controls
+    const [showSimilar, setShowSimilar] = useState(true);
+    const [similarRadius, setSimilarRadius] = useState<2 | 5>(2);
+    const [showNearby, setShowNearby] = useState(true);
+
     if (!isOpen || !centerListing || !centerListing.lat || !centerListing.lng) return null;
 
     const center: [number, number] = [centerListing.lat, centerListing.lng];
 
-    // Find neighbors within 2km
+    // Find neighbors within selected radius (for nearby gray pins)
+    const nearbyRadius = 2; // Fixed 2km for nearby
     const neighbors = allListings.filter(l => {
         if (l.id === centerListing.id || !l.lat || !l.lng) return false;
         const dist = calculateDistance(centerListing.lat, centerListing.lng, l.lat, l.lng);
-        return dist <= 2;
+
+        const isFiltered = filteredListingsIds.has(l.id);
+
+        // Similar listings (blue) use similarRadius
+        if (isFiltered && showSimilar) {
+            return dist <= similarRadius;
+        }
+
+        // Nearby listings (gray) use fixed 2km radius
+        if (!isFiltered && showNearby) {
+            return dist <= nearbyRadius;
+        }
+
+        // If both toggles are off for this listing type, exclude it
+        if (isFiltered && !showSimilar) return false;
+        if (!isFiltered && !showNearby) return false;
+
+        return false;
     });
 
     // Group all relevant listings by coordinates
@@ -332,19 +355,54 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         </MarkerClusterGroup>
                     </MapContainer>
 
-                    {/* Legend Tablets */}
-                    <div className="absolute bottom-4 left-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-2xl border border-gray-200">
-                            <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
-                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Current Listing</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-2xl border border-gray-200">
-                            <div className="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
-                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Similar Listing Nearby</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-2xl border border-gray-200">
-                            <div className="w-3 h-3 rounded-full bg-[#9ca3af] border border-black/20"></div>
-                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider">Nearby Listings</span>
+                    {/* Footer Controls (Single Compact Pill) */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000]">
+                        <div className="flex items-center bg-white px-2 py-1 rounded-full shadow-2xl border border-gray-200">
+                            {/* Featured (Static) */}
+                            <div className="flex items-center gap-1 px-1.5">
+                                <div className="w-[7px] h-[7px] rounded-full bg-[#ef4444]"></div>
+                                <span className="text-[9px] font-bold text-gray-700">Featured</span>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="w-px h-4 bg-gray-300 mx-1"></div>
+
+                            {/* Similar Toggle */}
+                            <button
+                                onClick={() => setShowSimilar(!showSimilar)}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all ${showSimilar ? 'bg-blue-50' : 'opacity-40'}`}
+                            >
+                                <div className="w-[7px] h-[7px] rounded-full bg-[#3b82f6]"></div>
+                                <span className="text-[9px] font-bold text-gray-700">Similar</span>
+                            </button>
+
+                            {/* Radius Selector */}
+                            <div className="flex items-center gap-0.5 ml-1">
+                                <button
+                                    onClick={() => setSimilarRadius(2)}
+                                    className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${similarRadius === 2 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    2K
+                                </button>
+                                <button
+                                    onClick={() => setSimilarRadius(5)}
+                                    className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${similarRadius === 5 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    5K
+                                </button>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="w-px h-4 bg-gray-300 mx-1"></div>
+
+                            {/* Nearby Toggle */}
+                            <button
+                                onClick={() => setShowNearby(!showNearby)}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all ${showNearby ? 'bg-gray-100' : 'opacity-40'}`}
+                            >
+                                <div className="w-[7px] h-[7px] rounded-full bg-[#9ca3af] border border-black/20"></div>
+                                <span className="text-[9px] font-bold text-gray-700">Nearby 2km</span>
+                            </button>
                         </div>
                     </div>
                 </div>
