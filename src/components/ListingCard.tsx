@@ -315,15 +315,27 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                             backButtonVariant === 'blue' ? 'MATCHED' : 'BACK'}
                     </button>
                 ) : (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (onMapClick) onMapClick(listing);
-                        }}
-                        className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
-                    >
-                        MAP
-                    </button>
+                    listing.lat && listing.lng ? (
+                        <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${listing.lat},${listing.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
+                        >
+                            MAP
+                        </a>
+                    ) : (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                alert(`No map coordinates available for ${listing.id}`);
+                            }}
+                            className="flex-1 text-center py-2 bg-gray-100 text-gray-400 rounded-lg text-[10px] sm:text-xs font-bold cursor-not-allowed uppercase tracking-wider"
+                        >
+                            MAP
+                        </button>
+                    )
                 )}
                 {listing.photoLink && (
                     <a

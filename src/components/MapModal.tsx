@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -69,21 +69,9 @@ interface MapModalProps {
     filteredListingsIds: Set<string>;
 }
 
-// Component to update map center when prop changes
-function MapController({ center }: { center: [number, number] }) {
-    const map = useMap();
-    useEffect(() => {
-        map.setView(center, map.getZoom());
-    }, [center, map]);
-    return null;
-}
 
-const formatPrice = (price: number) => {
-    const formatted = new Intl.NumberFormat('en-PH', {
-        maximumFractionDigits: 0
-    }).format(price);
-    return `P${formatted}`;
-};
+
+
 
 export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings, filteredListingsIds }) => {
     const [focusedListing, setFocusedListing] = useState<Listing | null>(null);
@@ -98,30 +86,77 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
 
     const center: [number, number] = [centerListing.lat, centerListing.lng];
 
-    // Find neighbors within selected radius (for nearby gray pins)
-    const nearbyRadius = 2; // Fixed 2km for nearby
+    // Helper function to check if a listing is "Similar" to the featured listing
+    const isSimilarListing = (item: Listing): boolean => {
+        // 1. Distance check (within selected radius)
+        const dist = calculateDistance(centerListing.lat, centerListing.lng, item.lat, item.lng);
+        if (dist > similarRadius) return false;
+
+        // 2. Price check (within ±20% of featured listing's price)
+        // Use the primary price (sale price if available, otherwise lease price)
+        const featuredPrice = centerListing.price > 0 ? centerListing.price : centerListing.leasePrice;
+        const itemPrice = item.price > 0 ? item.price : item.leasePrice;
+
+        if (featuredPrice > 0 && itemPrice > 0) {
+            const minPrice = featuredPrice * 0.8;
+            const maxPrice = featuredPrice * 1.2;
+            if (itemPrice < minPrice || itemPrice > maxPrice) return false;
+        } else {
+            // If either has no price, not similar
+            return false;
+        }
+
+        // 3. Area check (at least ONE must match within ±20%)
+        let areaMatch = false;
+
+        // Check Lot Area
+        if (centerListing.lotArea > 0 && item.lotArea > 0) {
+            const minLot = centerListing.lotArea * 0.8;
+            const maxLot = centerListing.lotArea * 1.2;
+            if (item.lotArea >= minLot && item.lotArea <= maxLot) {
+                areaMatch = true;
+            }
+        }
+
+        // Check Floor Area (if lot area didn't match)
+        if (!areaMatch && centerListing.floorArea > 0 && item.floorArea > 0) {
+            const minFloor = centerListing.floorArea * 0.8;
+            const maxFloor = centerListing.floorArea * 1.2;
+            if (item.floorArea >= minFloor && item.floorArea <= maxFloor) {
+                areaMatch = true;
+            }
+        }
+
+        return areaMatch;
+    };
+
+    // Find neighbors within selected radius
+    const nearbyRadius = 2; // Fixed 2km for nearby (gray pins)
     const neighbors = allListings.filter(l => {
         if (l.id === centerListing.id || !l.lat || !l.lng) return false;
         const dist = calculateDistance(centerListing.lat, centerListing.lng, l.lat, l.lng);
 
-        const isFiltered = filteredListingsIds.has(l.id);
+        const isSimilar = isSimilarListing(l);
 
-        // Similar listings (blue) use similarRadius
-        if (isFiltered && showSimilar) {
-            return dist <= similarRadius;
+        // Similar listings (blue) - meets all criteria within similarRadius
+        if (isSimilar && showSimilar) {
+            return true;
         }
 
-        // Nearby listings (gray) use fixed 2km radius
-        if (!isFiltered && showNearby) {
-            return dist <= nearbyRadius;
+        // Nearby listings (gray) - within 2km but NOT similar
+        if (!isSimilar && showNearby && dist <= nearbyRadius) {
+            return true;
         }
-
-        // If both toggles are off for this listing type, exclude it
-        if (isFiltered && !showSimilar) return false;
-        if (!isFiltered && !showNearby) return false;
 
         return false;
     });
+
+    // Create a set of similar listing IDs for icon coloring
+    const similarListingIds = new Set(
+        allListings
+            .filter(l => l.id !== centerListing.id && l.lat && l.lng && isSimilarListing(l))
+            .map(l => l.id)
+    );
 
     // Group all relevant listings by coordinates
     const allRelevant = [centerListing, ...neighbors];
@@ -138,7 +173,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
     const getGroupIcon = (listings: Listing[], isCenterGroup: boolean) => {
         const count = listings.length;
         const hasCenter = isCenterGroup;
-        const hasFilteredMatch = listings.some(l => filteredListingsIds.has(l.id));
+        const hasFilteredMatch = listings.some(l => similarListingIds.has(l.id));
 
         let colorKey: 'red' | 'blue' | 'gray' = 'gray';
         let colorHex = '#9ca3af';
@@ -218,12 +253,14 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
-                        <MapController center={center} />
+
 
                         <MarkerClusterGroup
                             chunkedLoading
                             spiderfyOnMaxZoom={true}
                             showCoverageOnHover={false}
+                            zoomToBoundsOnClick={false}
+                            spiderfyDistanceMultiplier={1.5}
                             iconCreateFunction={(cluster: any) => {
                                 const markers = cluster.getAllChildMarkers();
                                 let hasRed = false; // Center Listing
@@ -281,75 +318,29 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                         zIndexOffset={isCenterGroup ? 1000 : 0}
                                         eventHandlers={{
                                             click: (e) => {
-                                                if (listings.length > 1) {
-                                                    // Prevent default popup and show grid view
-                                                    L.DomEvent.stopPropagation(e);
+                                                // Always stop propagation to prevent spider from collapsing
+                                                L.DomEvent.stopPropagation(e.originalEvent);
 
-                                                    // Sort: Featured (Red) > Matched (Blue) > Others (Gray)
-                                                    const sorted = [...listings].sort((a, b) => {
-                                                        const aIsCenter = a.id === centerListing.id;
-                                                        const bIsCenter = b.id === centerListing.id;
-                                                        if (aIsCenter && !bIsCenter) return -1;
-                                                        if (!aIsCenter && bIsCenter) return 1;
+                                                // Sort: Featured (Red) > Matched (Blue) > Others (Gray)
+                                                const sorted = [...listings].sort((a, b) => {
+                                                    const aIsCenter = a.id === centerListing.id;
+                                                    const bIsCenter = b.id === centerListing.id;
+                                                    if (aIsCenter && !bIsCenter) return -1;
+                                                    if (!aIsCenter && bIsCenter) return 1;
 
-                                                        const aIsMatch = filteredListingsIds.has(a.id);
-                                                        const bIsMatch = filteredListingsIds.has(b.id);
-                                                        if (aIsMatch && !bIsMatch) return -1;
-                                                        if (!aIsMatch && bIsMatch) return 1;
+                                                    const aIsMatch = similarListingIds.has(a.id);
+                                                    const bIsMatch = similarListingIds.has(b.id);
+                                                    if (aIsMatch && !bIsMatch) return -1;
+                                                    if (!aIsMatch && bIsMatch) return 1;
 
-                                                        return 0;
-                                                    });
+                                                    return 0;
+                                                });
 
-                                                    setGroupedViewListings(sorted);
-                                                }
+                                                // Always open grid view for all pins (single or grouped)
+                                                setGroupedViewListings(sorted);
                                             }
                                         }}
-                                    >
-                                        {listings.length === 1 && (
-                                            <Popup minWidth={275} maxWidth={375}>
-                                                <div className="flex flex-col gap-3 px-1 py-1">
-                                                    {listings.map((l) => (
-                                                        <div key={l.id}>
-                                                            <div
-                                                                onClick={() => setFocusedListing(l)}
-                                                                className="text-base font-bold cursor-pointer text-blue-600 hover:underline mb-1 flex items-center justify-between"
-                                                            >
-                                                                <span>{l.id}</span>
-                                                            </div>
-                                                            <div className="text-sm">
-                                                                {l.price > 0 && (
-                                                                    <div className="font-bold text-gray-900 text-base">
-                                                                        {`P${l.price.toLocaleString()}`}
-                                                                        {l.pricePerSqm > 0 && (
-                                                                            <span className="text-xs font-normal text-gray-500 ml-1">
-                                                                                (P{l.pricePerSqm.toLocaleString()}/sqm)
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                                {l.leasePrice > 0 && (
-                                                                    <div className="text-gray-800 text-base">
-                                                                        {formatPrice(l.leasePrice)}/month
-                                                                    </div>
-                                                                )}
-                                                                {l.price === 0 && l.leasePrice === 0 && 'Price on Request'}
-                                                            </div>
-                                                            {(l.building || l.area || l.barangay) && (
-                                                                <div className="text-xs text-gray-600 font-medium">
-                                                                    {l.building || l.area || l.barangay}
-                                                                </div>
-                                                            )}
-                                                            {l.columnBD && (
-                                                                <div className="mt-1.5 p-1.5 bg-gray-100 rounded text-[10px] font-bold text-gray-800 border border-gray-200">
-                                                                    {l.columnBD}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </Popup>
-                                        )}
-                                    </Marker>
+                                    />
                                 );
                             })}
                         </MarkerClusterGroup>
@@ -382,13 +373,13 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                     onClick={() => setSimilarRadius(2)}
                                     className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${similarRadius === 2 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
-                                    2K
+                                    2km
                                 </button>
                                 <button
                                     onClick={() => setSimilarRadius(5)}
                                     className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${similarRadius === 5 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
-                                    5K
+                                    5km
                                 </button>
                             </div>
 
@@ -398,10 +389,10 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             {/* Nearby Toggle */}
                             <button
                                 onClick={() => setShowNearby(!showNearby)}
-                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all ${showNearby ? 'bg-gray-100' : 'opacity-40'}`}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all ${showNearby ? 'bg-blue-600' : 'opacity-40'}`}
                             >
-                                <div className="w-[7px] h-[7px] rounded-full bg-[#9ca3af] border border-black/20"></div>
-                                <span className="text-[9px] font-bold text-gray-700">Nearby 2km</span>
+                                <div className={`w-[7px] h-[7px] rounded-full ${showNearby ? 'bg-white' : 'bg-[#9ca3af]'} border border-black/20`}></div>
+                                <span className={`text-[9px] font-bold ${showNearby ? 'text-white' : 'text-gray-700'}`}>Nearby 2km</span>
                             </button>
                         </div>
                     </div>
@@ -440,7 +431,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                 {groupedViewListings.map((listing, idx) => {
                                     // Determine variant for each card within the grid
                                     const isCenter = listing.id === centerListing.id;
-                                    const isMatch = filteredListingsIds.has(listing.id);
+                                    const isMatch = similarListingIds.has(listing.id);
                                     let variant: 'red' | 'blue' | 'gray' = 'gray';
                                     if (isCenter) variant = 'red';
                                     else if (isMatch) variant = 'blue';
@@ -484,7 +475,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                     onBack={() => setFocusedListing(null)}
                                     // Single focused view - usually coming from popup click so variant isn't driven by group logic here
                                     // But we can default to blue or match the listing status
-                                    backButtonVariant={focusedListing.id === centerListing.id ? 'red' : (filteredListingsIds.has(focusedListing.id) ? 'blue' : 'gray')}
+                                    backButtonVariant={focusedListing.id === centerListing.id ? 'red' : (similarListingIds.has(focusedListing.id) ? 'blue' : 'gray')}
                                 />
                             </div>
                         </div>

@@ -157,12 +157,17 @@ function App() {
     };
   }, [isPriceFilterOpen, isPricePerSqmFilterOpen, isLotAreaFilterOpen, isFloorAreaFilterOpen]);
   // Relevance Score: 0-100.
-  // We align this with the 5 stages requested: 100, 75, 50, 25, 0.
-  // Initialize from URL if present.
+  // We now have 2 positions: EXACT (100) or BROAD (0).
+  // Initialize from URL if present, mapping old middle values to EXACT.
   const getInitialScore = () => {
     const params = new URLSearchParams(window.location.search);
     const score = params.get('relevance');
-    return score ? parseInt(score) : 50; // Default 50
+    if (score) {
+      const parsed = parseInt(score);
+      // Map old middle values (25, 50, 75) to EXACT for backwards compatibility
+      return parsed >= 50 ? 100 : 0;
+    }
+    return 100; // Default to EXACT
   };
 
   const [relevanceScore, setRelevanceScore] = useState<number>(getInitialScore());
@@ -591,6 +596,10 @@ function App() {
   const [mapCenterListing, setMapCenterListing] = useState<Listing | null>(null);
 
   const handleMapClick = (listing: Listing) => {
+    if (!listing.lat || !listing.lng) {
+      alert(`No map coordinates available for ${listing.id}`);
+      return;
+    }
     setMapCenterListing(listing);
     setShowMapModal(true);
   };
@@ -777,7 +786,7 @@ function App() {
                           setLotAreaRange(null);
                           setFloorAreaRange(null);
                           setSortConfig({ key: 'price', direction: 'asc' });
-                          setRelevanceScore(50);
+                          setRelevanceScore(100);
                           window.history.replaceState({}, '', window.location.pathname);
                         }}
                         className="text-sm font-bold text-red-500 hover:text-red-700 underline tracking-wide bg-white pl-2"
@@ -795,7 +804,7 @@ function App() {
                 {/* Relevance Slider (EXACT - BROAD) */}
                 <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full border border-gray-100 shadow-sm w-full animate-fade-in-up">
                   <div className="flex items-center leading-none select-none">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">EXACT</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">EXACT MATCH</span>
                   </div>
 
                   <input
@@ -812,7 +821,7 @@ function App() {
                   />
 
                   <div className="flex items-center leading-none select-none">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">BROAD</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">BROAD MATCH</span>
                   </div>
                 </div>
 
