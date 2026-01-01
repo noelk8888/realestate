@@ -12,6 +12,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
   const [jumpToPage, setJumpToPage] = useState('');
   const jumpRef = useRef<HTMLDivElement>(null);
 
+  // Helper to change page and scroll to top
+  const handlePageChange = (page: number) => {
+    onPageChange(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (jumpRef.current && !jumpRef.current.contains(event.target as Node)) {
@@ -28,7 +34,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
     e.preventDefault();
     const pageNum = parseInt(jumpToPage);
     if (pageNum >= 1 && pageNum <= totalPages) {
-      onPageChange(pageNum);
+      handlePageChange(pageNum);
       setIsJumpOpen(false);
       setJumpToPage('');
     }
@@ -87,7 +93,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
           return (
             <button
               key={page}
-              onClick={() => onPageChange(Number(page))}
+              onClick={() => handlePageChange(Number(page))}
               className={`min-w-[32px] h-8 sm:min-w-[40px] sm:h-10 flex items-center justify-center rounded-md text-sm font-bold transition-all duration-200
                 ${isCurrent
                   ? 'bg-gray-800 text-white shadow-md transform scale-105'
@@ -103,14 +109,14 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
       {/* Next & Last Buttons */}
       <div className="flex items-center gap-1 ml-2">
         <button
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
           className="h-10 px-3 flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           NEXT
         </button>
         <button
-          onClick={() => onPageChange(totalPages)}
+          onClick={() => handlePageChange(totalPages)}
           disabled={currentPage === totalPages}
           className="h-10 w-10 flex items-center justify-center text-gray-700 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           title="Last Page"
