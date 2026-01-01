@@ -312,7 +312,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         `}
                     >
                         {backButtonVariant === 'red' ? 'FEATURED' :
-                            backButtonVariant === 'blue' ? 'MATCHED' : 'BACK'}
+                            backButtonVariant === 'blue' ? 'SIMILAR' : 'BACK'}
                     </button>
                 ) : (
                     listing.lat && listing.lng ? (

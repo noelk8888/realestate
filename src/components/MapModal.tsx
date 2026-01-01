@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -81,6 +81,17 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
     const [showSimilar, setShowSimilar] = useState(true);
     const [similarRadius, setSimilarRadius] = useState<2 | 5>(2);
     const [showNearby, setShowNearby] = useState(true);
+    const [zoomLevel, setZoomLevel] = useState(15); // Track current zoom level
+
+    // Component to track zoom events
+    const ZoomTracker = () => {
+        useMapEvents({
+            zoomend: (e) => {
+                setZoomLevel(e.target.getZoom());
+            }
+        });
+        return null;
+    };
 
     if (!isOpen || !centerListing || !centerListing.lat || !centerListing.lng) return null;
 
@@ -253,6 +264,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
+                        <ZoomTracker />
 
 
                         <MarkerClusterGroup
@@ -321,7 +333,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                                 // Always stop propagation to prevent spider from collapsing
                                                 L.DomEvent.stopPropagation(e.originalEvent);
 
-                                                // Sort: Featured (Red) > Matched (Blue) > Others (Gray)
+                                                // Sort: Featured (Red) > Similar (Blue) > Nearby (Gray)
                                                 const sorted = [...listings].sort((a, b) => {
                                                     const aIsCenter = a.id === centerListing.id;
                                                     const bIsCenter = b.id === centerListing.id;
@@ -394,6 +406,14 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                 <div className={`w-[7px] h-[7px] rounded-full ${showNearby ? 'bg-white' : 'bg-[#9ca3af]'} border border-black/20`}></div>
                                 <span className={`text-[9px] font-bold ${showNearby ? 'text-white' : 'text-gray-700'}`}>Nearby 2km</span>
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Zoom Level Indicator */}
+                    <div className="absolute top-4 right-4 z-[1000]">
+                        <div className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-lg border border-gray-200">
+                            <span className="text-[10px] font-bold text-gray-600">ZOOM</span>
+                            <span className="ml-1.5 text-sm font-black text-gray-900">{zoomLevel}</span>
                         </div>
                     </div>
                 </div>
