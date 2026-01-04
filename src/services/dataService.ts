@@ -198,6 +198,7 @@ const normalizeListing = (row: string[]): Listing => {
         leasePricePerSqm: parseNumber(row[47]), // Col AV
         columnBC: row[54] || '', // Col BC
         columnBD: row[55] || '', // Col BD
+        columnAZ: row[51] || '', // Col AZ
         statusAQ: statusAQ, // Use detected status
         isSponsored: isSponsored,
         sponsoredUntil: sponsoredUntilDate

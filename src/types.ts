@@ -41,6 +41,7 @@ export interface Listing {
     leasePricePerSqm: number; // Col AV
     columnBC: string; // Col BC
     columnBD: string; // Col BD
+    columnAZ: string; // Col AZ
     statusAQ: string; // Col AQ
     isSponsored?: boolean;
     sponsoredUntil?: Date | null;

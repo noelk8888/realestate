@@ -77,7 +77,8 @@ export const searchListings = (listings: Listing[], query: string, minScore: num
             listing.summary,
             listing.columnJ,
             listing.columnK,
-            listing.columnP
+            listing.columnP,
+            listing.columnAZ
         ].join(' . ').toLowerCase();
 
         const listingText = primaryText + ' . ' + secondaryText;
