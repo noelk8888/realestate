@@ -1262,50 +1262,33 @@ function App() {
       />
 
       {/* Footer */}
-      <footer className="w-full py-8 mt-12 bg-white border-t border-gray-100 flex flex-col items-center gap-6">
-        <div className="flex items-center gap-6">
-          <a href="https://www.facebook.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition-colors">
-            <Facebook className="w-6 h-6" />
-          </a>
-          <a href="https://www.instagram.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pink-600 transition-colors">
-            <Instagram className="w-6 h-6" />
-          </a>
-          <a href="https://www.tiktok.com/@kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-black transition-colors">
-            {/* Custom TikTok Icon matching Lucide style */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-6 h-6"
-            >
-              <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-            </svg>
-          </a>
-          <a href="https://www.youtube.com/@KiuRealtyPH" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-red-600 transition-colors">
-            <Youtube className="w-6 h-6" />
-          </a>
-        </div>
+      <footer className="w-full py-8 mt-12 bg-white border-t border-gray-100 flex items-center justify-center px-4">
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+          <span className="font-bold text-gray-900 text-xl tracking-tight">KiuRealtyPH</span>
 
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-gray-700 text-lg">KiuRealtyPH</span>
-          <a href="https://www.messenger.com/t/kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition-colors">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="w-6 h-6"
-            >
-              <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.43 5.39 3.75 7.03v3.74c0 .8.88 1.28 1.59.87l2.48-1.24c.71.13 1.45.2 2.18.2 5.52 0 10-4.03 10-9S17.52 2 12 2zm1 14.24-2.5-2.73-4.86 2.73 5.35-5.68 2.5 2.73 4.86-2.73-5.35 5.68z" />
-            </svg>
-          </a>
+          <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
+
+          <div className="flex items-center gap-6">
+            <a href="https://www.messenger.com/t/kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.43 5.39 3.75 7.03v3.74c0 .8.88 1.28 1.59.87l2.48-1.24c.71.13 1.45.2 2.18.2 5.52 0 10-4.03 10-9S17.52 2 12 2zm1 14.24-2.5-2.73-4.86 2.73 5.35-5.68 2.5 2.73 4.86-2.73-5.35 5.68z" />
+              </svg>
+            </a>
+            <a href="https://www.facebook.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#1877F2] transition-colors">
+              <Facebook className="w-5 h-5" />
+            </a>
+            <a href="https://www.instagram.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#E4405F] transition-colors">
+              <Instagram className="w-5 h-5" />
+            </a>
+            <a href="https://www.tiktok.com/@kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-black transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+              </svg>
+            </a>
+            <a href="https://www.youtube.com/@KiuRealtyPH" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#FF0000] transition-colors">
+              <Youtube className="w-5 h-5" />
+            </a>
+          </div>
         </div>
       </footer>
     </div >

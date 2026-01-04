@@ -88,6 +88,9 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
         }
     }, [isColumnBDCopied]);
 
+    const isNotAvailable = listing.statusAQ && listing.statusAQ.toLowerCase().trim() !== 'available';
+    // Removed red outline per user request: "UPDATE - no red outline on all NOT AVAILABLE situations"
+
     return (
         <div
             className={`rounded-xl shadow-sm border p-5 hover:shadow-md transition-all relative group
@@ -123,6 +126,11 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         {listing.isDirect && (
                             <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-800">
                                 DIRECT
+                            </span>
+                        )}
+                        {isNotAvailable && (
+                            <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase">
+                                {listing.statusAQ}
                             </span>
                         )}
                     </div>

@@ -120,6 +120,22 @@ const normalizeListing = (row: string[]): Listing => {
     const columnV = row[48] || ''; // Col AW (Comments)
     const summaryWithV = columnV ? `${fullSummary}\n\n${columnV}` : fullSummary;
 
+    // Detect status from summary if statusAQ is empty or "available"
+    let statusAQ = (row[42] || '').trim();
+    if (!statusAQ || statusAQ.toLowerCase() === 'available') {
+        const upperFull = (row[26] || '').toUpperCase(); // Col AA (Summary)
+        const upperComments = (row[48] || '').toUpperCase(); // Col AW (Comments)
+        const combinedText = `${upperFull} ${upperComments}`;
+
+        if (combinedText.includes('SOLD')) {
+            statusAQ = 'SOLD';
+        } else if (combinedText.includes('RENTED')) {
+            statusAQ = 'RENTED';
+        } else if (combinedText.includes('NOT AVAILABLE')) {
+            statusAQ = 'NOT AVAILABLE';
+        }
+    }
+
     return {
         id: row[28] || '', // Col AC
         summary: summaryWithV, // Full text for copy including monthly dues
@@ -163,6 +179,7 @@ const normalizeListing = (row: string[]): Listing => {
         leasePrice: leasePrice,
         leasePricePerSqm: parseNumber(row[47]), // Col AV
         columnBC: row[54] || '', // Col BC
-        columnBD: row[55] || '' // Col BD
+        columnBD: row[55] || '', // Col BD
+        statusAQ: statusAQ // Use detected status
     };
 };

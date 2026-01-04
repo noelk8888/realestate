@@ -41,6 +41,7 @@ export interface Listing {
     leasePricePerSqm: number; // Col AV
     columnBC: string; // Col BC
     columnBD: string; // Col BD
+    statusAQ: string; // Col AQ
 }
 
 export interface RawListing {
