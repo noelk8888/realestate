@@ -93,23 +93,10 @@ export const searchListings = (listings: Listing[], query: string, minScore: num
             score += 60; // Lower score for description-only matches
         }
 
-        // B. Token Matching
-        let matchedTokensCount = 0;
-        queryTokens.forEach(token => {
-            // Use word boundary to avoid partial matches (e.g. "roces" matching "process")
-            // Escape special regex chars just in case
-            const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`\\b${escapedToken}\\b`, 'i');
-
-            if (regex.test(listingText)) {
-                matchedTokensCount++;
-                score += 15; // Increased from 10 to make keyword matches more valuable
-            }
-        });
-
-        // Bonus: All logic words matched (AND logic simulation)
-        if (queryTokens.length > 0 && matchedTokensCount === queryTokens.length) {
-            score += 35; // Adjusted to ensure 2-word queries get ~65 points total
+        // STRICT PHRASE MATCHING: The entire query phrase must appear in the listing
+        // "Road 8" must match "Road 8" exactly, not just "Road" or "8" separately
+        if (cleanQuery.length > 0 && !listingText.includes(cleanQuery)) {
+            return { listing, score: -1 }; // Filter out non-phrase matches
         }
 
         // C. Location Booster

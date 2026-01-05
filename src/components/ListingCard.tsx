@@ -95,15 +95,26 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
     return (
         <div
             className={`rounded-xl shadow-sm border p-5 hover:shadow-md transition-all relative group
-                ${isSponsored ? 'border-t-4 border-blue-600' : ''}
+                ${isNotAvailable ? 'border-t-4 border-red-600' : isSponsored ? 'border-t-4 border-blue-600' : ''}
                 ${isSelected
                     ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' // Selected State
-                    : 'bg-white border-gray-100 hover:border-blue-200'  // Normal State
+                    : isNotAvailable
+                        ? 'bg-white border-gray-100 hover:border-red-300 hover:shadow-red-100'  // NOT AVAILABLE hover - red tint
+                        : 'bg-white border-gray-100 hover:border-blue-200'  // Normal State
                 }
                 ${isDisabled && !isSelected ? 'opacity-50' : ''}
             `}
         >
-            {isSponsored && (
+            {isNotAvailable && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-[50]">
+                    <div className="bg-red-600 px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center min-w-[160px]">
+                        <span className="text-[12px] font-black uppercase tracking-[0.25em] text-white">
+                            {listing.statusAQ}
+                        </span>
+                    </div>
+                </div>
+            )}
+            {isSponsored && !isNotAvailable && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-[50]">
                     <div className="bg-blue-600 px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center min-w-[140px]">
                         <span className="text-[12px] font-black uppercase tracking-[0.25em] text-white">
@@ -137,11 +148,6 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         {listing.isDirect && (
                             <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-800">
                                 DIRECT
-                            </span>
-                        )}
-                        {isNotAvailable && (
-                            <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase">
-                                {listing.statusAQ}
                             </span>
                         )}
                     </div>

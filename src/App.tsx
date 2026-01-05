@@ -216,21 +216,8 @@ function App() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isPriceFilterOpen, isPricePerSqmFilterOpen, isLotAreaFilterOpen, isFloorAreaFilterOpen]);
-  // Relevance Score: 0-100.
-  // We now have 2 positions: EXACT (100) or BROAD (0).
-  // Initialize from URL if present, mapping old middle values to EXACT.
-  const getInitialScore = () => {
-    const params = new URLSearchParams(window.location.search);
-    const score = params.get('relevance');
-    if (score) {
-      const parsed = parseInt(score);
-      // Map old middle values (25, 50, 75) to EXACT for backwards compatibility
-      return parsed >= 50 ? 100 : 0;
-    }
-    return 100; // Default to EXACT
-  };
-
-  const [relevanceScore, setRelevanceScore] = useState<number>(getInitialScore());
+  // Availability Toggle: Show only available listings or show all
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState<boolean>(true); // Default to AVAILABLE only
   const [selectedListings, setSelectedListings] = useState<string[]>([]);
   const [showFormModal, setShowFormModal] = useState(false);
 
@@ -280,31 +267,29 @@ function App() {
     if (!loading && q && !hasSearched) {
       setHasSearched(true);
       setQuery(q);
-      let filtered = searchListings(allListings, q, relevanceScore);
+      let filtered = searchListings(allListings, q, 0); // Always use broad match
       setResults(filtered);
     }
-  }, [loading, allListings, hasSearched, relevanceScore]);
+  }, [loading, allListings, hasSearched]);
 
-  const updateUrlParams = (q: string, score: number) => {
+  const updateUrlParams = (q: string) => {
     const params = new URLSearchParams(window.location.search);
     if (q) params.set('q', q);
     else params.delete('q');
-
-    params.set('relevance', score.toString());
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newUrl);
   }
 
-  // Effect: Re-search when debouncedQuery or relevanceScore changes
+  // Effect: Re-search when debouncedQuery changes (always uses smart/broad match)
   useEffect(() => {
     if (debouncedQuery.trim() || hasSearched) {
       setHasSearched(true);
-      updateUrlParams(debouncedQuery, relevanceScore);
-      let filtered = searchListings(allListings, debouncedQuery, relevanceScore);
+      updateUrlParams(debouncedQuery);
+      let filtered = searchListings(allListings, debouncedQuery, 0); // Always use broad match (0)
       setResults(filtered);
     }
-  }, [debouncedQuery, relevanceScore, allListings]);
+  }, [debouncedQuery, allListings]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,13 +300,13 @@ function App() {
   // Re-run filter and sort when filters change
   const baseFilteredResults = results.filter(item => {
     // 0. ID Search Override
-    // If the query looks like an ID (G+Number), we IGNORE all filters to ensure the specific item is shown.
+    // If the query is an exact ID match, we show it regardless of other filters.
     const trimmedQuery = debouncedQuery.trim().toUpperCase();
     const isExactIdMatch = trimmedQuery === (item.id || '').toUpperCase();
     const isAvailable = (item.statusAQ || '').toLowerCase().trim() === 'available';
 
-    // STRICT FILTER: Only show NON-available items if it's an exact ID match
-    if (!isAvailable && !isExactIdMatch) {
+    // AVAILABILITY FILTER: If showOnlyAvailable is true, hide non-available items (unless exact ID match)
+    if (showOnlyAvailable && !isAvailable && !isExactIdMatch) {
       return false;
     }
 
@@ -566,6 +551,12 @@ function App() {
     }
     return true;
   }).sort((a, b) => {
+    // ALWAYS sort NOT AVAILABLE listings to the end
+    const aAvailable = (a.statusAQ || '').toLowerCase().trim() === 'available';
+    const bAvailable = (b.statusAQ || '').toLowerCase().trim() === 'available';
+    if (aAvailable && !bAvailable) return -1;
+    if (!aAvailable && bAvailable) return 1;
+
     if (!sortConfig) {
       // DEFAULT SORT: Prioritize listings with Facebook links
       if (a.facebookLink && !b.facebookLink) return -1;
@@ -609,25 +600,30 @@ function App() {
 
   const totalPages = Math.ceil(displayedResults.length / ITEMS_PER_PAGE);
 
-  // Sponsored Injection Logic
+  // Sponsored Injection Logic (BROAD: city > region > random)
   const getSponsoredListing = (pageNum: number) => {
-    const pool = allListings.filter(l =>
-      l.isSponsored &&
-      (l.statusAQ || '').toLowerCase().trim() === 'available'
-    );
+    // Sponsored listings: Only filter by availability (must be available), not by search query
+    const pool = allListings.filter(l => {
+      if (!l.isSponsored) return false;
+      // Sponsored listings MUST always be Available
+      return (l.statusAQ || '').toLowerCase().trim() === 'available';
+    });
 
     if (pool.length === 0) return null;
 
-    // Try to find matching sponsors (broad match on query or filters)
-    const matchingSponsors = pool.filter(l => {
-      const q = debouncedQuery.toLowerCase().trim();
-      if (!q) return true;
-      return (l.id || '').toLowerCase().includes(q) ||
-        (l.summary || '').toLowerCase().includes(q) ||
-        (l.city || '').toLowerCase().includes(q);
-    });
+    // Priority matching by location (city > region > random)
+    const resultCities = new Set(displayedResults.slice(0, 20).map(l => (l.city || '').toLowerCase().trim()).filter(c => c));
+    const resultRegions = new Set(displayedResults.slice(0, 20).map(l => (l.region || '').toLowerCase().trim()).filter(r => r));
 
-    const finalPool = matchingSponsors.length > 0 ? matchingSponsors : pool;
+    const cityMatches = pool.filter(l => resultCities.has((l.city || '').toLowerCase().trim()));
+    const regionMatches = pool.filter(l => resultRegions.has((l.region || '').toLowerCase().trim()));
+
+    let finalPool = pool;
+    if (cityMatches.length > 0) {
+      finalPool = cityMatches;
+    } else if (regionMatches.length > 0) {
+      finalPool = regionMatches;
+    }
 
     // Stable random based on page and current date
     const seed = pageNum + new Date().getDate();
@@ -897,7 +893,7 @@ function App() {
                           setLotAreaRange(null);
                           setFloorAreaRange(null);
                           setSortConfig(null);
-                          setRelevanceScore(100);
+                          setShowOnlyAvailable(true);
                           window.history.replaceState({}, '', window.location.pathname);
                         }}
                         className="text-sm font-bold text-red-500 hover:text-red-700 underline tracking-wide bg-white pl-2"
@@ -912,10 +908,10 @@ function App() {
               {/* Controls Stack: Relevance & Sort Buttons */}
               <div className="flex flex-col items-start gap-0">
 
-                {/* Relevance Slider (EXACT - BROAD) */}
+                {/* Availability Toggle (AVAILABLE - SHOW ALL) */}
                 <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full border border-gray-100 shadow-sm w-full animate-fade-in-up">
                   <div className="flex items-center leading-none select-none">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">EXACT MATCH</span>
+                    <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap ${showOnlyAvailable ? 'text-blue-600' : 'text-gray-400'}`}>AVAILABLE</span>
                   </div>
 
                   <input
@@ -923,16 +919,16 @@ function App() {
                     min="0"
                     max="1"
                     step="1"
-                    value={relevanceScore === 100 ? 0 : 1}
+                    value={showOnlyAvailable ? 0 : 1}
                     onChange={(e) => {
                       const val = parseInt(e.target.value);
-                      setRelevanceScore(val === 0 ? 100 : 0);
+                      setShowOnlyAvailable(val === 0);
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
                   />
 
                   <div className="flex items-center leading-none select-none">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap">BROAD MATCH</span>
+                    <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap ${!showOnlyAvailable ? 'text-blue-600' : 'text-gray-400'}`}>SHOW ALL</span>
                   </div>
                 </div>
 
