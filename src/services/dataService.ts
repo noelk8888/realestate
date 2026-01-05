@@ -136,19 +136,23 @@ const normalizeListing = (row: string[]): Listing => {
         }
     }
 
-    // Parse Sponsored Date from Column BH (Index 59)
-    const rawSponsoredDate = row[59] || '';
+    // Parse Sponsored Date Range from Column BH (Start - Index 59) and Column BI (End - Index 60)
+    const rawSponsoredStart = row[59] || '';
+    const rawSponsoredEnd = row[60] || '';
     let isSponsored = false;
     let sponsoredUntilDate: Date | null = null;
 
-    if (rawSponsoredDate) {
-        const parsedDate = new Date(rawSponsoredDate);
-        if (!isNaN(parsedDate.getTime())) {
-            sponsoredUntilDate = parsedDate;
-            // Active if date is today or in the future
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (parsedDate >= today) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (rawSponsoredStart && rawSponsoredEnd) {
+        const startDate = new Date(rawSponsoredStart);
+        const endDate = new Date(rawSponsoredEnd);
+
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            sponsoredUntilDate = endDate;
+            // Active if today is between start and end (inclusive)
+            if (today >= startDate && today <= endDate) {
                 isSponsored = true;
             }
         }

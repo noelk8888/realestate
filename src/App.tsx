@@ -97,66 +97,114 @@ function App() {
     return containerRect.left + (containerRect.width / 2) - (popoverWidth / 2);
   };
 
+  // Consolidate Popover Positioning (Static on Open)
   useEffect(() => {
-    if (isPriceFilterOpen && priceButtonRef.current && sortButtonsContainerRef.current) {
-      const rect = priceButtonRef.current.getBoundingClientRect();
+    const updateAllPositions = () => {
+      if (!sortButtonsContainerRef.current) return;
       const containerRect = sortButtonsContainerRef.current.getBoundingClientRect();
-      setPopoverPosition({
-        top: rect.bottom + 8,
-        left: calculateCenteredLeft(containerRect)
-      });
-    }
-  }, [isPriceFilterOpen, sortConfig]);
 
-  useEffect(() => {
-    if (isPricePerSqmFilterOpen && pricePerSqmButtonRef.current && sortButtonsContainerRef.current) {
-      const rect = pricePerSqmButtonRef.current.getBoundingClientRect();
-      const containerRect = sortButtonsContainerRef.current.getBoundingClientRect();
-      setPopoverPositionPerSqm({
-        top: rect.bottom + 8,
-        left: calculateCenteredLeft(containerRect)
-      });
-    }
-  }, [isPricePerSqmFilterOpen, sortConfig]);
+      if (isPriceFilterOpen && priceButtonRef.current) {
+        setPopoverPosition({
+          top: priceButtonRef.current.getBoundingClientRect().bottom + 8,
+          left: calculateCenteredLeft(containerRect)
+        });
+      }
+      if (isPricePerSqmFilterOpen && pricePerSqmButtonRef.current) {
+        setPopoverPositionPerSqm({
+          top: pricePerSqmButtonRef.current.getBoundingClientRect().bottom + 8,
+          left: calculateCenteredLeft(containerRect)
+        });
+      }
+      if (isLotAreaFilterOpen && lotAreaButtonRef.current) {
+        setPopoverPositionLot({
+          top: lotAreaButtonRef.current.getBoundingClientRect().bottom + 8,
+          left: calculateCenteredLeft(containerRect)
+        });
+      }
+      if (isFloorAreaFilterOpen && floorAreaButtonRef.current) {
+        setPopoverPositionFloor({
+          top: floorAreaButtonRef.current.getBoundingClientRect().bottom + 8,
+          left: calculateCenteredLeft(containerRect)
+        });
+      }
+    };
 
-  useEffect(() => {
-    if (isLotAreaFilterOpen && lotAreaButtonRef.current && sortButtonsContainerRef.current) {
-      const rect = lotAreaButtonRef.current.getBoundingClientRect();
-      const containerRect = sortButtonsContainerRef.current.getBoundingClientRect();
-      setPopoverPositionLot({
-        top: rect.bottom + 8,
-        left: calculateCenteredLeft(containerRect)
-      });
-    }
-  }, [isLotAreaFilterOpen, sortConfig]);
+    if (isPriceFilterOpen || isPricePerSqmFilterOpen || isLotAreaFilterOpen || isFloorAreaFilterOpen) {
+      updateAllPositions();
 
-  useEffect(() => {
-    if (isFloorAreaFilterOpen && floorAreaButtonRef.current && sortButtonsContainerRef.current) {
-      const rect = floorAreaButtonRef.current.getBoundingClientRect();
-      const containerRect = sortButtonsContainerRef.current.getBoundingClientRect();
-      setPopoverPositionFloor({
-        top: rect.bottom + 8,
-        left: calculateCenteredLeft(containerRect)
-      });
-    }
-  }, [isFloorAreaFilterOpen, sortConfig]);
+      // DISMISS ON SCROLL: The user wants it to disappear when the "screen is moved"
+      const handleScroll = () => {
+        setIsPriceFilterOpen(false);
+        setIsPricePerSqmFilterOpen(false);
+        setIsLotAreaFilterOpen(false);
+        setIsFloorAreaFilterOpen(false);
+      };
 
+      // DISMISS ON MOUSE LEAVE (with delay to allow slider dragging)
+      let dismissTimeout: NodeJS.Timeout | null = null;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        // Ignore if mouse button is pressed (user is dragging a slider)
+        if (e.buttons !== 0) {
+          if (dismissTimeout) clearTimeout(dismissTimeout);
+          return;
+        }
+
+        const target = e.target as HTMLElement;
+        const isHoveringTrigger = [priceButtonRef, pricePerSqmButtonRef, lotAreaButtonRef, floorAreaButtonRef]
+          .some(ref => ref.current?.contains(target));
+        const isHoveringPopover = [pricePopoverRef, pricePerSqmPopoverRef, lotAreaPopoverRef, floorAreaPopoverRef]
+          .some(ref => ref.current?.contains(target));
+
+        // If mouse is over the interaction area, cancel any pending dismiss
+        if (isHoveringTrigger || isHoveringPopover) {
+          if (dismissTimeout) clearTimeout(dismissTimeout);
+          return;
+        }
+
+        // Otherwise, schedule a dismiss after a short delay
+        if (!dismissTimeout) {
+          dismissTimeout = setTimeout(() => {
+            handleScroll(); // Closes everything
+            dismissTimeout = null;
+          }, 150); // 150ms delay allows for brief mouse movements
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('mousemove', handleMouseMove);
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('mousemove', handleMouseMove);
+        if (dismissTimeout) clearTimeout(dismissTimeout);
+      };
+    }
+  }, [isPriceFilterOpen, isPricePerSqmFilterOpen, isLotAreaFilterOpen, isFloorAreaFilterOpen, sortConfig]);
+
+  // Fallback Click-outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Close Price Popover
-      if (pricePopoverRef.current && !pricePopoverRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      // Close Price Popover (only if not clicking trigger button)
+      if (pricePopoverRef.current && !pricePopoverRef.current.contains(target) &&
+        priceButtonRef.current && !priceButtonRef.current.contains(target)) {
         setIsPriceFilterOpen(false);
       }
       // Close Price/Sqm Popover
-      if (pricePerSqmPopoverRef.current && !pricePerSqmPopoverRef.current.contains(event.target as Node)) {
+      if (pricePerSqmPopoverRef.current && !pricePerSqmPopoverRef.current.contains(target) &&
+        pricePerSqmButtonRef.current && !pricePerSqmButtonRef.current.contains(target)) {
         setIsPricePerSqmFilterOpen(false);
       }
       // Close Lot Area Popover
-      if (lotAreaPopoverRef.current && !lotAreaPopoverRef.current.contains(event.target as Node)) {
+      if (lotAreaPopoverRef.current && !lotAreaPopoverRef.current.contains(target) &&
+        lotAreaButtonRef.current && !lotAreaButtonRef.current.contains(target)) {
         setIsLotAreaFilterOpen(false);
       }
       // Close Floor Area Popover
-      if (floorAreaPopoverRef.current && !floorAreaPopoverRef.current.contains(event.target as Node)) {
+      if (floorAreaPopoverRef.current && !floorAreaPopoverRef.current.contains(target) &&
+        floorAreaButtonRef.current && !floorAreaButtonRef.current.contains(target)) {
         setIsFloorAreaFilterOpen(false);
       }
     };
