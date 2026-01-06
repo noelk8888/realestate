@@ -63,7 +63,7 @@ function App() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 15;
+  const ITEMS_PER_PAGE = 14;
 
   // Reset page when any filter/search changes
   useEffect(() => {

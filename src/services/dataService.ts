@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import { PropertyType } from '../types';
 import type { Listing } from '../types';
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1OYk_LGiLYb_ayGoVJ-tistDias2VdETdR60SP5ALBlo/export?format=csv&gid=628592557';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1OYk_LGiLYb_ayGoVJ-tistDias2VdETdR60SP5ALBlo/export?format=csv&gid=589312453';
 
 export const fetchListings = async (): Promise<Listing[]> => {
     try {
