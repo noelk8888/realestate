@@ -1355,7 +1355,10 @@ function App() {
       {/* Footer */}
       <footer className="w-full py-8 mt-12 bg-white border-t border-gray-100 flex items-center justify-center px-4">
         <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-          <span className="font-bold text-gray-900 text-xl tracking-tight">KiuRealtyPH</span>
+          <div className="flex items-center gap-2">
+            <img src="/footer-logo.png" alt="Kiu Realty Logo" className="h-8 w-auto" />
+            <span className="font-bold text-gray-900 text-xl tracking-tight">KiuRealtyPH</span>
+          </div>
 
           <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
 
