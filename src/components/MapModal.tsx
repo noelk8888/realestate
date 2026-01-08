@@ -68,13 +68,15 @@ interface MapModalProps {
     centerListing: Listing | null;
     allListings: Listing[];
     filteredListingsIds: Set<string>;
+    selectedListings: string[];
+    onToggleSelection: (listingId: string) => void;
 }
 
 
 
 
 
-export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings, filteredListingsIds: _filteredListingsIds }) => {
+export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListing, allListings, filteredListingsIds: _filteredListingsIds, selectedListings, onToggleSelection }) => {
     const [focusedListing, setFocusedListing] = useState<Listing | null>(null);
     const [groupedViewListings, setGroupedViewListings] = useState<Listing[] | null>(null);
 
@@ -268,10 +270,9 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         />
                         <MarkerClusterGroup
                             chunkedLoading
-                            spiderfyOnMaxZoom={true}
+                            spiderfyOnMaxZoom={false}
                             showCoverageOnHover={false}
                             zoomToBoundsOnClick={false}
-                            spiderfyDistanceMultiplier={1.5}
                             iconCreateFunction={(cluster: any) => {
                                 const markers = cluster.getAllChildMarkers();
                                 let hasRed = false; // Center Listing
@@ -315,6 +316,42 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                     className: 'custom-cluster-icon',
                                     iconSize: L.point(40, 40, true),
                                 });
+                            }}
+                            eventHandlers={{
+                                clusterclick: (cluster: any) => {
+                                    // Get all markers in the cluster
+                                    const markers = cluster.layer.getAllChildMarkers();
+
+                                    // Extract listings from markers
+                                    const clusterListings: Listing[] = [];
+                                    markers.forEach((marker: any) => {
+                                        const coordKey = `${marker.getLatLng().lat},${marker.getLatLng().lng}`;
+                                        if (groupedListings[coordKey]) {
+                                            clusterListings.push(...groupedListings[coordKey]);
+                                        }
+                                    });
+
+                                    // Sort the listings: Featured > Similar > Rest by Price (High to Low)
+                                    const sorted = clusterListings.sort((a, b) => {
+                                        const aIsCenter = a.id === centerListing.id;
+                                        const bIsCenter = b.id === centerListing.id;
+                                        if (aIsCenter && !bIsCenter) return -1;
+                                        if (!aIsCenter && bIsCenter) return 1;
+
+                                        const aIsMatch = similarListingIds.has(a.id);
+                                        const bIsMatch = similarListingIds.has(b.id);
+                                        if (aIsMatch && !bIsMatch) return -1;
+                                        if (!aIsMatch && bIsMatch) return 1;
+
+                                        // For listings in the same category, sort by price (high to low)
+                                        const aPrice = a.price > 0 ? a.price : a.leasePrice;
+                                        const bPrice = b.price > 0 ? b.price : b.leasePrice;
+                                        return bPrice - aPrice;
+                                    });
+
+                                    // Show the listing cards
+                                    setGroupedViewListings(sorted);
+                                }
                             }}
                         >
                             {Object.entries(groupedListings).map(([coordKey, listings]) => {
@@ -450,6 +487,8 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                                 listing={listing}
                                                 isCenterListing={listing.id === centerListing.id}
                                                 onMapClick={() => setGroupedViewListings(null)}
+                                                isSelected={selectedListings.includes(listing.id)}
+                                                onToggleSelection={onToggleSelection}
                                             />
                                         </div>
                                     );

@@ -808,7 +808,7 @@ function App() {
                   <button
                     key={filter}
                     onClick={() => setSelectedType(current => current === filter ? null : filter)}
-                    className={`relative px-4 sm:px-5 py-1.5 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 min-w-[50px] whitespace-nowrap
+                    className={`relative px-3 sm:px-4 py-1 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all duration-200 min-w-[50px] whitespace-nowrap
                           ${isActive
                         ? 'bg-[#0b6439] text-white shadow-md z-10'
                         : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
@@ -825,7 +825,7 @@ function App() {
             <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
               <button
                 onClick={() => setSelectedDirect(prev => !prev)}
-                className={`relative px-4 sm:px-5 py-1.5 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 min-w-[60px] whitespace-nowrap
+                className={`relative px-3 sm:px-4 py-1 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all duration-200 min-w-[60px] whitespace-nowrap
                   ${selectedDirect
                     ? 'bg-[#0b6439] text-white shadow-md z-10'
                     : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
@@ -861,7 +861,7 @@ function App() {
                         key={filter}
                         title={filter}
                         onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
-                        className={`relative px-4 sm:px-5 py-1.5 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 min-w-[60px] whitespace-nowrap
+                        className={`relative px-3 sm:px-4 py-1 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all duration-200 min-w-[60px] whitespace-nowrap
                               ${isActive
                             ? 'bg-[#0b6439] text-white shadow-md z-10'
                             : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
@@ -1367,6 +1367,8 @@ function App() {
         centerListing={mapCenterListing}
         allListings={allListings}
         filteredListingsIds={new Set(displayedResults.map(l => l.id))}
+        selectedListings={selectedListings}
+        onToggleSelection={handleToggleSelection}
       />
 
       <NoteModal
