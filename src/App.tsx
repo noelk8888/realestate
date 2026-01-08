@@ -1260,6 +1260,9 @@ function App() {
                       : allListings.length > 0 ? `${allListings.length.toLocaleString()} Listings` : 'Loading properties...'
                     }
                   </p>
+                  <p className="text-sm font-semibold text-red-600 mt-1">
+                    Click on any of the Listing Boxes to INQUIRE
+                  </p>
                 </div>
               </div>
             </div>
