@@ -332,7 +332,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                                 // Always stop propagation to prevent spider from collapsing
                                                 L.DomEvent.stopPropagation(e.originalEvent);
 
-                                                // Sort: Featured (Red) > Similar (Blue) > Nearby (Gray)
+                                                // Sort: Featured (Red) > Similar (Blue) > Rest by Price (High to Low)
                                                 const sorted = [...listings].sort((a, b) => {
                                                     const aIsCenter = a.id === centerListing.id;
                                                     const bIsCenter = b.id === centerListing.id;
@@ -344,7 +344,11 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                                     if (aIsMatch && !bIsMatch) return -1;
                                                     if (!aIsMatch && bIsMatch) return 1;
 
-                                                    return 0;
+                                                    // For listings in the same category (both similar or both not similar),
+                                                    // sort by price from highest to lowest
+                                                    const aPrice = a.price > 0 ? a.price : a.leasePrice;
+                                                    const bPrice = b.price > 0 ? b.price : b.leasePrice;
+                                                    return bPrice - aPrice; // Descending order (high to low)
                                                 });
 
                                                 // Always open grid view for all pins (single or grouped)
@@ -445,6 +449,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                             <ListingCard
                                                 listing={listing}
                                                 isCenterListing={listing.id === centerListing.id}
+                                                onMapClick={() => setGroupedViewListings(null)}
                                             />
                                         </div>
                                     );

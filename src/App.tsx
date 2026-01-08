@@ -792,7 +792,7 @@ function App() {
 
 
           {/* Filter Buttons - Single Line Compact Layout */}
-          <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-1 mb-2 w-full max-w-6xl mx-auto px-1">
+          <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-2 mb-2 w-full max-w-6xl mx-auto px-1">
 
             {/* Group 1: Property Type */}
             <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
@@ -821,9 +821,6 @@ function App() {
               })}
             </div>
 
-            {/* Spacer - minimal */}
-            <div className="w-0.5"></div>
-
             {/* Group: Direct Filter */}
             <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
               <button
@@ -838,9 +835,6 @@ function App() {
                 DIRECT
               </button>
             </div>
-
-            {/* Spacer - minimal */}
-            <div className="w-0.5"></div>
 
             {/* Group 2: Category */}
             <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
