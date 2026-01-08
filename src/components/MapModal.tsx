@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,15 +10,6 @@ import type { Listing } from '../types';
 import { calculateDistance } from '../utils/geoUtils';
 import { ListingCard } from './ListingCard';
 
-// Zoom Display Component
-const ZoomDisplay: React.FC<{ onZoomChange: (zoom: number) => void }> = ({ onZoomChange }) => {
-    useMapEvents({
-        zoomend: (e) => {
-            onZoomChange(e.target.getZoom());
-        },
-    });
-    return null;
-};
 
 // Fix for default marker icon in Leaflet with Webpack/Vite
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -449,20 +440,10 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100/50">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto">
                                 {groupedViewListings.map((listing, idx) => {
-                                    // Determine variant for each card within the grid
-                                    const isCenter = listing.id === centerListing.id;
-                                    const isMatch = similarListingIds.has(listing.id);
-                                    let variant: 'red' | 'blue' | 'gray' = 'gray';
-                                    if (isCenter) variant = 'red';
-                                    else if (isMatch) variant = 'blue';
-
                                     return (
                                         <div key={`${listing.id}-${idx}`} className="h-full">
                                             <ListingCard
                                                 listing={listing}
-                                                isPopupView={true}
-                                                onBack={() => setGroupedViewListings(null)}
-                                                backButtonVariant={variant}
                                             />
                                         </div>
                                     );
@@ -491,11 +472,6 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             <div className="w-full max-w-sm">
                                 <ListingCard
                                     listing={focusedListing}
-                                    isPopupView={true}
-                                    onBack={() => setFocusedListing(null)}
-                                    // Single focused view - usually coming from popup click so variant isn't driven by group logic here
-                                    // But we can default to blue or match the listing status
-                                    backButtonVariant={focusedListing.id === centerListing.id ? 'red' : (similarListingIds.has(focusedListing.id) ? 'blue' : 'gray')}
                                 />
                             </div>
                         </div>

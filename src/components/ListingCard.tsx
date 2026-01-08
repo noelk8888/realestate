@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { Listing } from '../types';
-import { MapPin, Building, Maximize, Facebook, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Building, Maximize, Facebook } from 'lucide-react';
 
 interface ListingCardProps {
     listing: Listing;
     isSelected?: boolean;
     onToggleSelection?: (id: string) => void;
     isDisabled?: boolean;
-    onNotesClick?: (id: string) => void;
     onMapClick?: (listing: Listing) => void;
-    onShowNote?: (note: string, id: string) => void;
-    index?: number;
     activeFilter?: string | null;
-    isPopupView?: boolean;
-    onBack?: () => void;
-    backButtonVariant?: 'red' | 'blue' | 'gray';
 }
 
 export const ListingCard: React.FC<ListingCardProps> = React.memo(({
@@ -22,21 +16,9 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
     isSelected = false,
     isDisabled = false,
     onToggleSelection,
-    onNotesClick,
     onMapClick,
-    // onShowNote,
-    index,
-    activeFilter,
-    isPopupView = false,
-    onBack,
-    backButtonVariant = 'blue'
+    activeFilter
 }) => {
-    const [isCopied, setIsCopied] = useState(false);
-    const [isColumnKCopied, setIsColumnKCopied] = useState(false);
-    const [isColumnBDCopied, setIsColumnBDCopied] = useState(false);
-
-    const [isExpanded, setIsExpanded] = useState(false);
-
     const formatPrice = (price: number) => {
         const formatted = new Intl.NumberFormat('en-PH', {
             maximumFractionDigits: 0
@@ -44,50 +26,6 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
         return `P${formatted}`;
     };
 
-    const handleCopy = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (listing.summary) {
-            navigator.clipboard.writeText(listing.summary);
-            setIsCopied(true);
-        }
-    };
-
-    const handleCopyColumnK = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (listing.columnK) {
-            navigator.clipboard.writeText(listing.columnK);
-            setIsColumnKCopied(true);
-        }
-    };
-
-    const handleCopyColumnBD = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (listing.columnBD) {
-            navigator.clipboard.writeText(listing.columnBD);
-            setIsColumnBDCopied(true);
-        }
-    };
-
-    useEffect(() => {
-        if (isCopied) {
-            const timer = setTimeout(() => setIsCopied(false), 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [isCopied]);
-
-    useEffect(() => {
-        if (isColumnKCopied) {
-            const timer = setTimeout(() => setIsColumnKCopied(false), 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [isColumnKCopied]);
-
-    useEffect(() => {
-        if (isColumnBDCopied) {
-            const timer = setTimeout(() => setIsColumnBDCopied(false), 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [isColumnBDCopied]);
 
     const isNotAvailable = listing.statusAQ && listing.statusAQ.toLowerCase().trim() !== 'available';
     // Removed red outline per user request: "UPDATE - no red outline on all NOT AVAILABLE situations"

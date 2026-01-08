@@ -708,12 +708,6 @@ function App() {
     });
   };
 
-  const handleSendForm = (id?: string) => {
-    if (typeof id === 'string') {
-      setSelectedListings([id]);
-    }
-    setShowFormModal(true);
-  };
 
   // Map Modal State
   const [showMapModal, setShowMapModal] = useState(false);
@@ -735,13 +729,6 @@ function App() {
     title: ''
   });
 
-  const handleShowNote = (content: string, id: string) => {
-    setNoteModalData({
-      isOpen: true,
-      content,
-      title: `Note for ${id}`
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-primary font-sans selection:bg-green-100 pt-20">
@@ -1351,10 +1338,7 @@ function App() {
                       isSelected={selectedListings.includes(listing.id)}
                       onToggleSelection={handleToggleSelection}
                       isDisabled={selectedListings.length >= 5}
-                      onNotesClick={handleSendForm}
-                      onShowNote={handleShowNote}
                       onMapClick={handleMapClick}
-                      index={(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
                       activeFilter={selectedType}
                     />
                   ))}
