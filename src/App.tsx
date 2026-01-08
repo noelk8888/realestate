@@ -749,11 +749,8 @@ function App() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-2xl tracking-tight text-primary leading-none">
-                  Kiu Realty
-                </span>
-                <span className="text-[0.65rem] font-bold tracking-[0.2em] text-green-600/80 uppercase">
-                  Premium Listings
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 leading-none">
+                  KiuRealtyPH
                 </span>
               </div>
             </div>
