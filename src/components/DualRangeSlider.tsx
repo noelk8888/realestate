@@ -51,7 +51,7 @@ const EditableLabel: React.FC<EditableLabelProps> = ({ value, format, onCommit }
                         setIsEditing(false);
                     }
                 }}
-                className="w-24 p-1 text-sm font-mono border-2 border-blue-500 rounded bg-white text-gray-900 shadow-lg outline-none text-center z-50"
+                className="w-24 p-1 text-sm font-mono border-2 border-primary rounded bg-white text-primary shadow-lg outline-none text-center z-50"
             />
         );
     }
@@ -59,7 +59,7 @@ const EditableLabel: React.FC<EditableLabelProps> = ({ value, format, onCommit }
     return (
         <span
             onClick={() => setIsEditing(true)}
-            className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-2 py-0.5 rounded transition-all select-none border border-transparent hover:border-blue-200"
+            className="cursor-pointer hover:bg-green-100 hover:text-green-700 px-2 py-0.5 rounded transition-all select-none border border-transparent hover:border-green-200"
             title="Click to edit value"
         >
             {format ? format(value) : value}
@@ -187,7 +187,7 @@ export const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step
 
                 <div className="relative w-full h-1">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gray-300 rounded-full"></div>
-                    <div ref={range} className="absolute top-0 h-1 bg-blue-600 rounded-full"></div>
+                    <div ref={range} className="absolute top-0 h-1 bg-primary rounded-full"></div>
                 </div>
             </div>
 

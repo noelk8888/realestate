@@ -114,14 +114,14 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         <button
           onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className="h-10 px-3 flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="h-10 px-3 flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           NEXT
         </button>
         <button
           onClick={() => handlePageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className="h-10 w-10 flex items-center justify-center text-gray-700 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="h-10 w-10 flex items-center justify-center text-gray-700 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           title="Last Page"
         >
           <ChevronsRight className="w-5 h-5" />
@@ -132,7 +132,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
       <div className="relative ml-4 sm:ml-8" ref={jumpRef}>
         <button
           onClick={() => setIsJumpOpen(!isJumpOpen)}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary transition-colors"
         >
           Page {currentPage} of {totalPages}
           <ChevronDown className="w-4 h-4" />
@@ -151,12 +151,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
                 placeholder="Page number"
                 value={jumpToPage}
                 onChange={(e) => setJumpToPage(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 autoFocus
               />
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 rounded-md transition-colors"
+                className="w-full bg-primary hover:bg-green-700 text-white text-sm font-bold py-2 rounded-md transition-colors"
               >
                 Go
               </button>

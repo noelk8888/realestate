@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import kiuLogo from '../assets/kiu_logo_scrolled.png';
+import kiuLogo from '../assets/scroll-top-logo.png';
 
 export const ScrollToTop = () => {
     const [isVisible, setIsVisible] = useState(false);

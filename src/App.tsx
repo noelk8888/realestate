@@ -11,6 +11,7 @@ import { MapModal } from './components/MapModal';
 import { NoteModal } from './components/NoteModal';
 import Pagination from './components/Pagination';
 import { ScrollToTop } from './components/ScrollToTop';
+import logo from './assets/logo.png';
 
 function App() {
 
@@ -637,10 +638,27 @@ function App() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Inject sponsor at index 0 if available
-  const finalResults = pageSponsor
-    ? [pageSponsor, ...paginatedResults.filter(r => r.id !== pageSponsor.id)]
-    : paginatedResults;
+  // Inject sponsor at appropriate position based on result count
+  let finalResults = paginatedResults;
+
+  if (pageSponsor && paginatedResults.length > 0) {
+    // Remove sponsored listing from results if it already exists
+    const filteredResults = paginatedResults.filter(r => r.id !== pageSponsor.id);
+
+    // Determine insertion position based on number of listings
+    let insertPosition: number;
+    if (filteredResults.length === 1) {
+      insertPosition = 1; // 2nd position for single listing
+    } else if (filteredResults.length >= 2) {
+      insertPosition = 2; // 3rd position for 2+ listings
+    } else {
+      insertPosition = 0; // Fallback to 1st position (shouldn't happen due to length > 0 check)
+    }
+
+    // Insert sponsored listing at the determined position
+    finalResults = [...filteredResults];
+    finalResults.splice(insertPosition, 0, pageSponsor);
+  }
 
   // Relevance sort = null sortConfig (uses original array order from searchEngine)
   const handleSort = (key: 'price' | 'pricePerSqm' | 'relevance' | 'lotArea' | 'floorArea') => {
@@ -726,8 +744,58 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100">
+    <div className="min-h-screen bg-gray-50 text-primary font-sans selection:bg-green-100 pt-20">
       <ScrollToTop />
+
+      {/* Header */}
+      <header className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50 transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            {/* Logo Section */}
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-tr from-primary to-green-400 rounded-full opacity-0 group-hover:opacity-30 transition duration-300 blur"></div>
+                <img
+                  src={logo}
+                  alt="Kiu Realty"
+                  className="relative w-12 h-12 object-contain filter drop-shadow-sm transform group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-2xl tracking-tight text-primary leading-none">
+                  Kiu Realty
+                </span>
+                <span className="text-[0.65rem] font-bold tracking-[0.2em] text-green-600/80 uppercase">
+                  Premium Listings
+                </span>
+              </div>
+            </div>
+
+            {/* Social Media Icons */}
+            <div className="flex items-center gap-4">
+              <a href="https://www.messenger.com/t/kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.43 5.39 3.75 7.03v3.74c0 .8.88 1.28 1.59.87l2.48-1.24c.71.13 1.45.2 2.18.2 5.52 0 10-4.03 10-9S17.52 2 12 2zm1 14.24-2.5-2.73-4.86 2.73 5.35-5.68 2.5 2.73 4.86-2.73-5.35 5.68z" />
+                </svg>
+              </a>
+              <a href="https://www.facebook.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a href="https://www.instagram.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a href="https://www.tiktok.com/@kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                </svg>
+              </a>
+              <a href="https://www.youtube.com/@KiuRealtyPH" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
+                <Youtube className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Hero / Search Section */}
       <div className={`flex flex-col items-center justify-center transition-all duration-500 ease-out px-4 ${(hasSearched || selectedType || selectedCategory) ? 'py-12 min-h-[30vh]' : 'min-h-[100vh]'
@@ -735,12 +803,7 @@ function App() {
         <div className={`w-full max-w-2xl text-center space-y-6 transition-all duration-500 ${(hasSearched || selectedType || selectedCategory) ? 'translate-y-0' : '-translate-y-8'
           }`}>
 
-          <p className={`font-bold text-gray-900 tracking-tight transition-all duration-500 ${(hasSearched || selectedType || selectedCategory) ? 'text-2xl mb-4' : 'text-4xl sm:text-5xl mb-8'}`}>
-            {(selectedType || selectedCategory || hasSearched)
-              ? `Found ${displayedResults.length} of ${allListings.length} Available Listings`
-              : allListings.length > 0 ? `${allListings.length} Available Listings` : 'Loading properties...'
-            }
-          </p>
+
 
 
 
@@ -761,10 +824,10 @@ function App() {
                   <button
                     key={filter}
                     onClick={() => setSelectedType(current => current === filter ? null : filter)}
-                    className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[50px] whitespace-nowrap
+                    className={`relative px-4 sm:px-5 py-1.5 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 min-w-[50px] whitespace-nowrap
                           ${isActive
-                        ? 'bg-blue-600 text-white shadow-sm z-10'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                        ? 'bg-[#0b6439] text-white shadow-md z-10'
+                        : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                       }
                     `}
                   >
@@ -781,10 +844,10 @@ function App() {
             <div className="inline-flex bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0">
               <button
                 onClick={() => setSelectedDirect(prev => !prev)}
-                className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
+                className={`relative px-4 sm:px-5 py-1.5 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 min-w-[60px] whitespace-nowrap
                   ${selectedDirect
-                    ? 'bg-blue-600 text-white shadow-sm z-10'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                    ? 'bg-[#0b6439] text-white shadow-md z-10'
+                    : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                   }
                 `}
               >
@@ -820,10 +883,10 @@ function App() {
                         key={filter}
                         title={filter}
                         onClick={() => setSelectedCategory(current => current === filter ? null : filter)}
-                        className={`relative px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 min-w-[60px] whitespace-nowrap
+                        className={`relative px-4 sm:px-5 py-1.5 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all duration-200 min-w-[60px] whitespace-nowrap
                               ${isActive
-                            ? 'bg-blue-600 text-white shadow-sm z-10'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                            ? 'bg-[#0b6439] text-white shadow-md z-10'
+                            : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                           }
                         `}
                       >
@@ -846,7 +909,7 @@ function App() {
               <form onSubmit={handleSearch} className="relative w-full group">
                 <div className="relative transform transition-all duration-300 hover:scale-[1.01]">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                    <div className="bg-blue-600 rounded-full p-2 shadow-md">
+                    <div className="bg-[#0b6439] rounded-full p-2 shadow-md">
                       <Search className="h-5 w-5 text-white" />
                     </div>
                   </div>
@@ -865,8 +928,8 @@ function App() {
                     placeholder={placeholderText}
                     className={`w-full bg-white border-2 transition-all duration-300 rounded-2xl outline-none text-lg font-medium
                           ${hasSearched
-                        ? 'py-3 pl-14 pr-20 border-gray-200 focus:border-blue-500 shadow-sm'
-                        : 'py-4 pl-14 pr-20 border-transparent shadow-xl hover:shadow-2xl focus:ring-4 focus:ring-blue-100'
+                        ? 'py-3 pl-14 pr-20 border-gray-200 focus:border-primary shadow-sm'
+                        : 'py-4 pl-14 pr-20 border-transparent shadow-xl hover:shadow-2xl focus:ring-4 focus:ring-green-100'
                       }
                       `}
                   />
@@ -908,30 +971,6 @@ function App() {
               {/* Controls Stack: Relevance & Sort Buttons */}
               <div className="flex flex-col items-start gap-0">
 
-                {/* Availability Toggle (AVAILABLE - SHOW ALL) */}
-                <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full border border-gray-100 shadow-sm w-full animate-fade-in-up">
-                  <div className="flex items-center leading-none select-none">
-                    <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap ${showOnlyAvailable ? 'text-blue-600' : 'text-gray-400'}`}>AVAILABLE</span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="1"
-                    value={showOnlyAvailable ? 0 : 1}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      setShowOnlyAvailable(val === 0);
-                    }}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mx-2"
-                  />
-
-                  <div className="flex items-center leading-none select-none">
-                    <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap ${!showOnlyAvailable ? 'text-blue-600' : 'text-gray-400'}`}>SHOW ALL</span>
-                  </div>
-                </div>
-
                 {/* Sort Buttons */}
                 {/* Sort Buttons */}
                 <div ref={sortButtonsContainerRef} className="flex w-full bg-gray-100 p-0.5 rounded-lg shadow-inner relative z-0 flex-wrap sm:flex-nowrap justify-between">
@@ -946,8 +985,8 @@ function App() {
                       }}
                       className={`relative w-full px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex items-center justify-center gap-1
                             ${sortConfig?.key === 'price'
-                          ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                          ? 'bg-white text-primary shadow-sm ring-1 ring-black/5 z-10'
+                          : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                         }
                         `}
                     >
@@ -958,11 +997,11 @@ function App() {
                     {isPriceFilterOpen && createPortal(
                       <div
                         ref={pricePopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                        className="fixed w-72 bg-green-50 rounded-xl shadow-2xl p-3 border border-green-200 z-[9999] animate-fade-in-up"
                         style={{ top: `${popoverPosition.top}px`, left: `${popoverPosition.left}px` }}
                       >
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Price Range (PHP)</span>
+                          <span className="text-sm font-bold text-primary">Price Range (PHP)</span>
                           <button
                             onClick={() => handleSort('price')}
                             className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -1025,8 +1064,8 @@ function App() {
                       }}
                       className={`relative w-full px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex items-center justify-center gap-1
                         ${sortConfig?.key === 'pricePerSqm'
-                          ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                          ? 'bg-white text-primary shadow-sm ring-1 ring-black/5 z-10'
+                          : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                         }
                     `}
                     >
@@ -1037,11 +1076,11 @@ function App() {
                     {isPricePerSqmFilterOpen && createPortal(
                       <div
                         ref={pricePerSqmPopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                        className="fixed w-72 bg-green-50 rounded-xl shadow-2xl p-3 border border-green-200 z-[9999] animate-fade-in-up"
                         style={{ top: `${popoverPositionPerSqm.top}px`, left: `${popoverPositionPerSqm.left}px` }}
                       >
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Price/Sqm Range</span>
+                          <span className="text-sm font-bold text-primary">Price/Sqm Range</span>
                           <button
                             onClick={() => handleSort('pricePerSqm')}
                             className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -1104,8 +1143,8 @@ function App() {
                       }}
                       className={`relative w-full px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex items-center justify-center gap-1
                         ${sortConfig?.key === 'lotArea'
-                          ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                          ? 'bg-white text-primary shadow-sm ring-1 ring-black/5 z-10'
+                          : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                         }
                     `}
                     >
@@ -1116,11 +1155,11 @@ function App() {
                     {isLotAreaFilterOpen && createPortal(
                       <div
                         ref={lotAreaPopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                        className="fixed w-72 bg-green-50 rounded-xl shadow-2xl p-3 border border-green-200 z-[9999] animate-fade-in-up"
                         style={{ top: `${popoverPositionLot.top}px`, left: `${popoverPositionLot.left}px` }}
                       >
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Lot Area (SQM)</span>
+                          <span className="text-sm font-bold text-primary">Lot Area (SQM)</span>
                           <button
                             onClick={() => handleSort('lotArea')}
                             className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -1175,8 +1214,8 @@ function App() {
                       }}
                       className={`relative w-full px-3 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap flex items-center justify-center gap-1
                         ${sortConfig?.key === 'floorArea'
-                          ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5 z-10'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                          ? 'bg-white text-primary shadow-sm ring-1 ring-black/5 z-10'
+                          : 'text-gray-500 hover:text-primary hover:bg-gray-200/50'
                         }
                     `}
                     >
@@ -1187,11 +1226,11 @@ function App() {
                     {isFloorAreaFilterOpen && createPortal(
                       <div
                         ref={floorAreaPopoverRef}
-                        className="fixed w-72 bg-blue-50 rounded-xl shadow-2xl p-3 border border-blue-200 z-[9999] animate-fade-in-up"
+                        className="fixed w-72 bg-green-50 rounded-xl shadow-2xl p-3 border border-green-200 z-[9999] animate-fade-in-up"
                         style={{ top: `${popoverPositionFloor.top}px`, left: `${popoverPositionFloor.left}px` }}
                       >
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-gray-900">Floor Area (SQM)</span>
+                          <span className="text-sm font-bold text-primary">Floor Area (SQM)</span>
                           <button
                             onClick={() => handleSort('floorArea')}
                             className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -1234,12 +1273,22 @@ function App() {
                     )}
                   </div>
                 </div>
+
+                {/* Listings Count - Below Price Filters */}
+                <div className="w-full text-center mt-2">
+                  <p className="text-3xl font-black text-gray-600">
+                    {(selectedType || selectedCategory || hasSearched)
+                      ? `${displayedResults.length.toLocaleString()} of ${allListings.length.toLocaleString()} Listings`
+                      : allListings.length > 0 ? `${allListings.length.toLocaleString()} Listings` : 'Loading properties...'
+                    }
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Right Column: Area Filters Sidebar (Adjusted Width) */}
             <div className="w-full xl:w-[37.5%] flex flex-col pt-1">
-              <div className="bg-blue-50/80 rounded-3xl p-4 flex flex-col gap-1 border border-blue-100/50">
+              <div className="bg-green-50/80 rounded-3xl p-4 flex flex-col gap-1 border border-green-100/50">
                 {[
                   { label: 'Region', value: selectedRegion, setValue: setSelectedRegion, options: availableRegions },
                   { label: 'Province', value: selectedProvince, setValue: setSelectedProvince, options: availableProvinces },
@@ -1254,7 +1303,7 @@ function App() {
                         <span className="text-sm font-bold text-gray-500 group-hover:text-gray-800 transition-colors">
                           {label}
                         </span>
-                        <span className={`text-sm font-bold transition-colors ${value ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                        <span className={`text-sm font-bold transition-colors ${value ? 'text-primary' : 'text-gray-400 group-hover:text-gray-600'}`}>
                           {value || 'All'}
                         </span>
                       </div>
@@ -1352,39 +1401,33 @@ function App() {
         title={noteModalData.title}
       />
 
-      {/* Footer */}
-      <footer className="w-full py-8 mt-12 bg-white border-t border-gray-100 flex items-center justify-center px-4">
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-          <div className="flex items-center gap-2">
-            <img src="/footer-logo.png" alt="Kiu Realty Logo" className="h-8 w-auto" />
-            <span className="font-bold text-gray-900 text-xl tracking-tight">KiuRealtyPH</span>
-          </div>
-
-          <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
-
-          <div className="flex items-center gap-6">
-            <a href="https://www.messenger.com/t/kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.43 5.39 3.75 7.03v3.74c0 .8.88 1.28 1.59.87l2.48-1.24c.71.13 1.45.2 2.18.2 5.52 0 10-4.03 10-9S17.52 2 12 2zm1 14.24-2.5-2.73-4.86 2.73 5.35-5.68 2.5 2.73 4.86-2.73-5.35 5.68z" />
-              </svg>
-            </a>
-            <a href="https://www.facebook.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#1877F2] transition-colors">
-              <Facebook className="w-5 h-5" />
-            </a>
-            <a href="https://www.instagram.com/kiurealtyph/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#E4405F] transition-colors">
-              <Instagram className="w-5 h-5" />
-            </a>
-            <a href="https://www.tiktok.com/@kiurealtyph" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-black transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-              </svg>
-            </a>
-            <a href="https://www.youtube.com/@KiuRealtyPH" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#FF0000] transition-colors">
-              <Youtube className="w-5 h-5" />
-            </a>
+      {/* Sticky Bottom Bar - Appears when listings are selected */}
+      {selectedListings.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-[#0b6439] shadow-lg border-t border-green-700">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm sm:text-base">
+                You may select up to 5 <span className="font-bold">({selectedListings.length}/5 selected)</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSelectedListings([])}
+                className="px-3 py-1.5 text-white text-sm font-medium hover:bg-white/10 rounded-lg transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setShowFormModal(true)}
+                className="px-6 py-2 bg-white text-[#0b6439] font-black text-sm uppercase tracking-wider rounded-2xl hover:bg-green-50 transition-colors shadow-md"
+              >
+                SEND FORM
+              </button>
+            </div>
           </div>
         </div>
-      </footer>
+      )}
+
     </div >
   );
 }

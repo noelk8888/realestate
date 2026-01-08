@@ -21,6 +21,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
     listing,
     isSelected = false,
     isDisabled = false,
+    onToggleSelection,
     onNotesClick,
     onMapClick,
     // onShowNote,
@@ -94,15 +95,20 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
 
     return (
         <div
-            className={`rounded-xl shadow-sm border p-5 hover:shadow-md transition-all relative group
-                ${isNotAvailable ? 'border-t-4 border-red-600' : isSponsored ? 'border-t-4 border-blue-600' : ''}
+            onClick={() => {
+                if (onToggleSelection && !isDisabled) {
+                    onToggleSelection(listing.id);
+                }
+            }}
+            className={`rounded-xl shadow-sm border p-5 hover:shadow-md transition-all relative group cursor-pointer
+                ${isNotAvailable ? 'border-t-4 border-red-600' : ''}
                 ${isSelected
-                    ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' // Selected State
+                    ? 'bg-green-50 border-primary ring-1 ring-primary' // Selected State
                     : isNotAvailable
                         ? 'bg-white border-gray-100 hover:border-red-300 hover:shadow-red-100'  // NOT AVAILABLE hover - red tint
-                        : 'bg-white border-gray-100 hover:border-blue-200'  // Normal State
+                        : 'bg-white border-gray-100 hover:border-green-200'  // Normal State
                 }
-                ${isDisabled && !isSelected ? 'opacity-50' : ''}
+                ${isDisabled && !isSelected ? 'opacity-50 cursor-not-allowed' : ''}
             `}
         >
             {isNotAvailable && (
@@ -114,32 +120,11 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                     </div>
                 </div>
             )}
-            {isSponsored && !isNotAvailable && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-[50]">
-                    <div className="bg-blue-600 px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center min-w-[140px]">
-                        <span className="text-[12px] font-black uppercase tracking-[0.25em] text-white">
-                            SPONSORED
-                        </span>
-                    </div>
-                </div>
-            )}
+
             <div className="flex justify-between items-start mb-1">
                 <div className="flex flex-col gap-1.5 flex-1 mr-4">
-                    {listing.columnK && (
-                        <div
-                            onClick={handleCopyColumnK}
-                            className={`text-sm font-extrabold leading-tight cursor-pointer transition-colors
-                                ${isColumnKCopied ? 'text-green-600' : 'text-gray-900 hover:text-blue-600'}
-                            `}
-                            title="Click to copy"
-                        >
-                            {isColumnKCopied ? 'COPIED!' : `${index ? `${index}. ` : ''}${listing.columnK}`}
-                        </div>
-                    )}
+
                     <div className="flex gap-1.5 flex-wrap">
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${listing.columnAE ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-600'}`}>
-                            {listing.columnAE || 'OTHERS'}
-                        </span>
                         {listing.saleType && (
                             <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600">
                                 {listing.saleType.toUpperCase()}
@@ -173,17 +158,11 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                                 e.stopPropagation();
                                 if (onMapClick) onMapClick(listing);
                             }}
-                            className="text-2xl font-black text-black font-sans cursor-pointer hover:text-blue-600 hover:underline transition-colors tracking-tighter"
+                            className="text-2xl font-black text-black font-sans cursor-pointer hover:text-primary hover:underline transition-colors tracking-tighter"
                             title="View on Map"
                         >
                             {listing.id}
                         </span>
-                        {/* Column BC: Reverted to Below Listing ID (Gray) */}
-                        {listing.columnBC && !isPopupView && (
-                            <div className="mt-1 text-xs font-bold text-gray-400 text-right">
-                                {listing.columnBC}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -192,26 +171,12 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
 
             <div className="mb-4 mt-0.5">
                 <div className="w-full bg-gray-100 p-2 rounded-lg shadow-inner flex flex-col items-center justify-center gap-0.5 text-center">
-                    {/* Column BD: Top of Price, Light Green Theme */}
-                    {listing.columnBD && (
-                        <div
-                            onClick={handleCopyColumnBD}
-                            className={`mb-0.5 text-xs font-bold px-1.5 py-0.5 rounded border shadow-sm w-fit cursor-pointer transition-colors
-                                ${isColumnBDCopied
-                                    ? 'text-green-700 bg-green-100 border-green-300'
-                                    : 'text-green-600 bg-green-50 border-green-200 hover:bg-green-100'
-                                }
-                            `}
-                            title="Click to copy"
-                        >
-                            {isColumnBDCopied ? 'COPIED!' : listing.columnBD}
-                        </div>
-                    )}
+
 
                     {activeFilter === 'Lease' ? (
                         <>
                             {listing.leasePrice > 0 && (
-                                <div className="flex items-baseline gap-1 text-gray-900 justify-center">
+                                <div className="flex items-baseline gap-1 text-primary justify-center">
                                     <span className="text-xl font-bold">{formatPrice(listing.leasePrice)}/month</span>
                                     {listing.leasePricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
@@ -222,7 +187,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                             )}
                             {listing.price > 0 && (
                                 <div className="flex items-baseline gap-2 justify-center">
-                                    <span className="text-xl font-bold text-gray-900">{formatPrice(listing.price)}</span>
+                                    <span className="text-xl font-bold text-primary">{formatPrice(listing.price)}</span>
                                     {listing.pricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
                                             ({formatPrice(listing.pricePerSqm)}/sqm)
@@ -235,7 +200,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         <>
                             {listing.price > 0 && (
                                 <div className="flex items-baseline gap-2 justify-center">
-                                    <span className="text-xl font-bold text-gray-900">{formatPrice(listing.price)}</span>
+                                    <span className="text-xl font-bold text-primary">{formatPrice(listing.price)}</span>
                                     {listing.pricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
                                             ({formatPrice(listing.pricePerSqm)}/sqm)
@@ -244,7 +209,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                                 </div>
                             )}
                             {listing.leasePrice > 0 && (
-                                <div className="flex items-baseline gap-1 text-gray-900 justify-center">
+                                <div className="flex items-baseline gap-1 text-primary justify-center">
                                     <span className="text-xl font-bold">{formatPrice(listing.leasePrice)}/month</span>
                                     {listing.leasePricePerSqm > 0 && (
                                         <span className="text-sm font-normal text-gray-500">
@@ -256,31 +221,7 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         </>
                     )}
                 </div>
-                {/* Column BD removed from here */}
-                {listing.displaySummary && (
-                    <div className="relative">
-                        <div
-                            className={`text-sm font-medium text-black mt-1 leading-relaxed whitespace-pre-line
-                                ${!isExpanded ? 'line-clamp-4' : ''}
-                            `}
-                        >
-                            {listing.displaySummary}
-                        </div>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsExpanded(!isExpanded);
-                            }}
-                            className="mt-1 flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors bg-transparent border-0 p-0 cursor-pointer"
-                        >
-                            {isExpanded ? (
-                                <>Show Less <ChevronUp size={14} /></>
-                            ) : (
-                                <>Show More <ChevronDown size={14} /></>
-                            )}
-                        </button>
-                    </div>
-                )}
+
             </div>
 
             <div className="space-y-2 text-sm text-gray-500">
@@ -322,81 +263,18 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
 
             {/* Removed combined BC/BD block from bottom - moved to specific locations */}
 
-            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
-                {isPopupView ? (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onBack && onBack();
-                        }}
-                        className={`
-                            flex-1 text-center py-2 text-white rounded-lg text-[10px] sm:text-xs font-bold transition-colors uppercase tracking-wider
-                            ${backButtonVariant === 'red' ? 'bg-red-600 hover:bg-red-700' : ''}
-                            ${backButtonVariant === 'blue' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                            ${backButtonVariant === 'gray' ? 'bg-gray-400 hover:bg-gray-500' : ''}
-                        `}
-                    >
-                        {backButtonVariant === 'red' ? 'FEATURED' :
-                            backButtonVariant === 'blue' ? 'SIMILAR' : 'BACK'}
-                    </button>
-                ) : (
-                    listing.lat && listing.lng ? (
-                        <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${listing.lat},${listing.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex-1 text-center py-2 bg-blue-50 text-blue-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors uppercase tracking-wider"
-                        >
-                            MAP
-                        </a>
-                    ) : (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                alert(`No map coordinates available for ${listing.id}`);
-                            }}
-                            className="flex-1 text-center py-2 bg-gray-100 text-gray-400 rounded-lg text-[10px] sm:text-xs font-bold cursor-not-allowed uppercase tracking-wider"
-                        >
-                            MAP
-                        </button>
-                    )
-                )}
-                {listing.photoLink && (
-                    <a
-                        href={listing.photoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-center py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-indigo-100 transition-colors uppercase tracking-wider"
-                    >
-                        PHOTO
-                    </a>
-                )}
-                <button
-                    onClick={handleCopy}
-                    className={`flex-1 text-center py-2 rounded-lg text-xs font-bold transition-all duration-200 uppercase tracking-wider flex items-center justify-center gap-1
-                        ${isCopied
-                            ? 'bg-green-500 text-white scale-105 shadow-sm'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }
-                    `}
-                >
-                    {isCopied ? 'COPIED!' : 'COPY'}
-                </button>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        // Always open contact form directly
-                        onNotesClick && onNotesClick(listing.id);
-                    }}
-                    className={`flex-1 text-center py-2 bg-yellow-50 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors uppercase tracking-wider
-                        ${listing.columnV ? 'text-yellow-700' : 'text-blue-600'}
-                    `}
-                >
-                    NOTES
-                </button>
-            </div>
+            {/* Sponsored badge at bottom */}
+            {isSponsored && !isNotAvailable && (
+                <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">
+                    <div className="bg-[#3a9a6b] px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center">
+                        <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white">
+                            SPONSORED
+                        </span>
+                    </div>
+                </div>
+            )}
+
+
 
         </div >
     );

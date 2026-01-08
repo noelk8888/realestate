@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,6 +9,16 @@ import { X, ArrowLeft } from 'lucide-react';
 import type { Listing } from '../types';
 import { calculateDistance } from '../utils/geoUtils';
 import { ListingCard } from './ListingCard';
+
+// Zoom Display Component
+const ZoomDisplay: React.FC<{ onZoomChange: (zoom: number) => void }> = ({ onZoomChange }) => {
+    useMapEvents({
+        zoomend: (e) => {
+            onZoomChange(e.target.getZoom());
+        },
+    });
+    return null;
+};
 
 // Fix for default marker icon in Leaflet with Webpack/Vite
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -231,7 +241,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                 {/* Header */}
                 <div className="p-3 border-b border-gray-50 flex justify-between items-center bg-white z-[1001] relative">
                     <div>
-                        <h3 className="text-base font-bold text-gray-900">
+                        <h3 className="text-base font-bold text-primary">
                             {`Location: ${centerListing.id}`}
                         </h3>
                         <p className="text-xs text-gray-500">
@@ -248,7 +258,19 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
 
                 {/* Map Content */}
                 <div className="flex-1 relative z-0">
-                    <MapContainer center={center} zoom={15} style={{ height: '100%', width: '100%' }}>
+                    <MapContainer
+                        center={center}
+                        zoom={14}
+                        minZoom={14}
+                        maxZoom={14}
+                        zoomControl={false}
+                        scrollWheelZoom={false}
+                        doubleClickZoom={false}
+                        touchZoom={false}
+                        boxZoom={false}
+                        keyboard={false}
+                        style={{ height: '100%', width: '100%' }}
+                    >
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -409,7 +431,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                     <ArrowLeft size={20} className="text-gray-600" />
                                 </button>
                                 <div>
-                                    <h3 className="text-base font-bold text-gray-900 leading-none">
+                                    <h3 className="text-base font-bold text-primary leading-none">
                                         {groupedViewListings.length} Listings Found
                                     </h3>
                                     <p className="text-[10px] text-gray-500 font-medium mt-1 uppercase tracking-wider">
@@ -461,7 +483,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             >
                                 <ArrowLeft size={20} className="text-gray-600" />
                             </button>
-                            <h3 className="text-base font-bold text-gray-900">
+                            <h3 className="text-base font-bold text-primary">
                                 {`Back to ${groupedViewListings ? 'Group' : 'Map'}`}
                             </h3>
                         </div>

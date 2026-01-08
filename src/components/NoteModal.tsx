@@ -42,7 +42,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1.5 hover:bg-black/5 rounded-full transition-colors text-gray-500 hover:text-gray-900"
+                        className="p-1.5 hover:bg-black/5 rounded-full transition-colors text-gray-500 hover:text-primary"
                     >
                         <X size={20} />
                     </button>
