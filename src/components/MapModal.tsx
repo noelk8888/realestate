@@ -444,6 +444,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                         <div key={`${listing.id}-${idx}`} className="h-full">
                                             <ListingCard
                                                 listing={listing}
+                                                isCenterListing={listing.id === centerListing.id}
                                             />
                                         </div>
                                     );
@@ -472,6 +473,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                             <div className="w-full max-w-sm">
                                 <ListingCard
                                     listing={focusedListing}
+                                    isCenterListing={focusedListing.id === centerListing.id}
                                 />
                             </div>
                         </div>

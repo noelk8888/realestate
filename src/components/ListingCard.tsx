@@ -9,6 +9,7 @@ interface ListingCardProps {
     isDisabled?: boolean;
     onMapClick?: (listing: Listing) => void;
     activeFilter?: string | null;
+    isCenterListing?: boolean; // True when this listing is centered on the map with red pin
 }
 
 export const ListingCard: React.FC<ListingCardProps> = React.memo(({
@@ -17,7 +18,8 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
     isDisabled = false,
     onToggleSelection,
     onMapClick,
-    activeFilter
+    activeFilter,
+    isCenterListing = false
 }) => {
     const formatPrice = (price: number) => {
         const formatted = new Intl.NumberFormat('en-PH', {
@@ -66,6 +68,11 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         {listing.saleType && (
                             <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600">
                                 {listing.saleType.toUpperCase()}
+                            </span>
+                        )}
+                        {isCenterListing && (
+                            <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-600">
+                                FEATURED
                             </span>
                         )}
                         {listing.isDirect && (
