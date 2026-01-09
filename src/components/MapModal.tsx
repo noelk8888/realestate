@@ -486,6 +486,7 @@ export const MapModal: React.FC<MapModalProps> = ({ isOpen, onClose, centerListi
                                             <ListingCard
                                                 listing={listing}
                                                 isCenterListing={listing.id === centerListing.id}
+                                                isSimilarListing={similarListingIds.has(listing.id)}
                                                 onMapClick={() => setGroupedViewListings(null)}
                                                 isSelected={selectedListings.includes(listing.id)}
                                                 onToggleSelection={onToggleSelection}

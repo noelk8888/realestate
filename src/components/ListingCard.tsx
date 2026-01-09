@@ -10,6 +10,7 @@ interface ListingCardProps {
     onMapClick?: (listing: Listing) => void;
     activeFilter?: string | null;
     isCenterListing?: boolean; // True when this listing is centered on the map with red pin
+    isSimilarListing?: boolean; // True when this listing is similar/matched to the featured listing
 }
 
 export const ListingCard: React.FC<ListingCardProps> = React.memo(({
@@ -19,7 +20,8 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
     onToggleSelection,
     onMapClick,
     activeFilter,
-    isCenterListing = false
+    isCenterListing = false,
+    isSimilarListing = false
 }) => {
     const formatPrice = (price: number) => {
         const formatted = new Intl.NumberFormat('en-PH', {
@@ -68,11 +70,6 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
                         {listing.saleType && (
                             <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600">
                                 {listing.saleType.toUpperCase()}
-                            </span>
-                        )}
-                        {isCenterListing && (
-                            <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-600">
-                                FEATURED
                             </span>
                         )}
                         {listing.isDirect && (
@@ -208,14 +205,28 @@ export const ListingCard: React.FC<ListingCardProps> = React.memo(({
 
             {/* Removed combined BC/BD block from bottom - moved to specific locations */}
 
-            {/* Sponsored badge at bottom */}
-            {isSponsored && !isNotAvailable && (
+            {/* Badge at bottom - Priority: FEATURED > SIMILAR > SPONSORED */}
+            {!isNotAvailable && (isCenterListing || isSimilarListing || isSponsored) && (
                 <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">
-                    <div className="bg-[#3a9a6b] px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center">
-                        <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white">
-                            SPONSORED
-                        </span>
-                    </div>
+                    {isCenterListing ? (
+                        <div className="bg-red-600 px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center">
+                            <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white">
+                                FEATURED
+                            </span>
+                        </div>
+                    ) : isSimilarListing ? (
+                        <div className="bg-blue-600 px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center">
+                            <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white">
+                                SIMILAR
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="bg-[#3a9a6b] px-6 py-1.5 rounded-2xl shadow-md flex items-center justify-center">
+                            <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white">
+                                SPONSORED
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
 
